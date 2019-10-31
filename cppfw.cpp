@@ -9,12 +9,12 @@ struct Rule {
   Rule(string chain, string* ruleSpecs);
   operator==(Rule rule);
   operator=(Rule rule);
-}
+};
 
 struct Iptable {
   string* m_chains;
   Rule** m_rules;
-}
+};
 
 string* parseCommands(string input);
 void insert(Rule rule, int ruleNum);
@@ -29,3 +29,8 @@ Iptable readFromFile(string fileName);
 void writeToFile(Iptable table);
 void printTable(Iptable table);
 void default(string chain, string target);
+
+int main(int argc, char[]* argv){
+  
+  return 0;
+}
