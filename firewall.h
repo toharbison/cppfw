@@ -25,8 +25,8 @@ class Firewall{
    * "matches" is a vector of rules to match against packet
    * "target" is the target of packet
    */
-  void addRule(std::string* dstIp, std::string* srcIp, std::string* iFace, std::string* oFace, 
-      std::string* proto, std::vector<std::string>* matches, std::string target); 
+  void addRule(std::string dstIp, std::string srcIp, std::string iFace, std::string oFace, 
+      std::string proto, std::vector<std::string>* matches, std::string target); 
 
   /* Checks logs and returns std::string of recent log messages
    * "lines" number of messages to return
