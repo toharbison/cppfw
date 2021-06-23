@@ -9,3 +9,6 @@ firewall.o: firewall.h firewall.cpp
 
 test: prog
 	sudo ./prog
+
+clean:
+	rm *.o prog
