@@ -33,7 +33,7 @@ typedef ip6t_npt_tginfo ip6t_npt_target;
 typedef ip6t_reject_info ip6t_reject_target;
 
 #if 0
-class TemplateTarget : Target{
+class TemplateTarget : Target {
   public:
   /* Constructors */
   TemplateTarget();
@@ -50,14 +50,26 @@ class TemplateTarget : Target{
 
 #endif
 
-class Target{
+class Target {
   public:
   /* Returns name of target */
-  virtual string getName() = 0;
-  virtual int getSize() = 0;
+  virtual string getName() const = 0;
 };
 
-class AuditTarget : Target{
+template<typename T>
+class TemplateTarget : Target {
+  public:
+  /* Returns size of target struct */
+  unsigned int getSize() const;
+  /* Returns target specs */
+  T getSpecs() const;
+  
+  private:
+  T specs;
+};
+
+
+class AuditTarget : TemplateTarget<xt_audit_target>{
   public:
   /* Constuctors */
   AuditTarget();
@@ -77,7 +89,7 @@ class AuditTarget : Target{
 };
 
 /* Used only in mangle table */
-class ChecksumTarget : Target{
+class ChecksumTarget : TemplateTarget<xt_checksum_target>{
   public:
   /* Constructors */
   ChecksumTarget();
@@ -95,7 +107,7 @@ class ChecksumTarget : Target{
   xt_checksum_target specs;
 };
 
-class ClassifyTarget : Target{
+class ClassifyTarget : TemplateTarget<xt_classify_target>{
   public:
   /* Constuctors */
   ClassifyTarget();
@@ -115,7 +127,7 @@ class ClassifyTarget : Target{
   xt_classify_target specs;
 };
 
-class ConnmarkTarget : Target{
+class ConnmarkTarget : TemplateTarget<xt_connmark_target>{
   public:
   /* Constructors */
   ConnmarkTarget();
@@ -153,7 +165,7 @@ class ConnmarkTarget : Target{
 };
 
 /* Valid in security table (and mangle table for older kernels) */
-class ConnsecmarkTarget : Target{
+class ConnsecmarkTarget : TemplateTarget<xt_connsecmark_target>{
   public:
   /* Constructors */
   ConnsecmarkTarget();
@@ -177,7 +189,7 @@ class ConnsecmarkTarget : Target{
 };
 
 /* Only valid in raw table */
-class CTTarget : Target{
+class CTTarget : TemplateTarget<xt_ct_target>{
   public:
   /* Constructors */
   CTTarget();
@@ -230,7 +242,7 @@ class CTTarget : Target{
 };
 
 /* Only valid in mangle table */
-class DscpTarget : Target{
+class DscpTarget : TemplateTarget<xt_dscp_target>{
   public:
   /* Constructors */
   DscpTarget();
@@ -250,7 +262,7 @@ class DscpTarget : Target{
 };
 
 // Valid only in mangle table
-class TosTarget : Target{
+class TosTarget : TemplateTarget<xt_tos_target>{
   public:
   /* Constructors */
   TosTarget();
@@ -274,7 +286,7 @@ class TosTarget : Target{
  * Sets fwmark with a mark calculated for hashing packet selector at choice
  * Valid in PREROUTING and OUTPUT of mangle table
  */
-class HmarkTarget : Target{
+class HmarkTarget : TemplateTarget<xt_hmark_target>{
   public:
   /* Constructor */
   HmarkTarget();
@@ -314,7 +326,7 @@ class HmarkTarget : Target{
  * Timers are created when a new label is added. When time expires a sysfs notifcation is sent to
  * the userspace.
  */
-class IdletimerTarget : Target{
+class IdletimerTarget : TemplateTarget<xt_idletimer_target>{
   public:
   /* Constructors */
   IdletimerTarget();
@@ -337,7 +349,7 @@ class IdletimerTarget : Target{
  * Creates an LED trigger that can be attached to system indicator lights. This can be used to blink
  * when ever a certain connection is made.
  */
-class LedTarget : Target{
+class LedTarget : TemplateTarget<xt_led_target>{
   public:
   /* Constructors */
   LedTarget();
@@ -366,7 +378,7 @@ class LedTarget : Target{
  * Used to kernel log matching packets. Log can be read in dmesg of syslog. Non-terminating target
  * rule traversal will continue next rule in chain.
  */
-class LogTarget : Target{
+class LogTarget : TemplateTarget<xt_log_target>{
   public:
   /* Constructors */
   LogTarget();
@@ -398,7 +410,7 @@ class LogTarget : Target{
  * Used to set the nfmark of a packet. Mark should be set in PREROUTING or OUTPUT chain of the
  * mangle table to affect routing
  */
-class MarkTarget : Target{
+class MarkTarget : TemplateTarget<xt_mark_target>{
   public:
   /* Constructors */
   MarkTarget();
@@ -421,7 +433,7 @@ class MarkTarget : Target{
  * Provides logging of matching packets. Works like LOG but can be used with a loaded logging
  * backend (usually nfnetlink_log) which can allow userspace processes to recieve the packets.
  */
-class NFLogTarget : Target{
+class NFLogTarget : TemplateTarget<xt_nflog_target>{
   public:
   /* Constructors */
   NFLogTarget();
@@ -447,7 +459,7 @@ class NFLogTarget : Target{
   xt_nflog_target specs;
 };
 
-class NFQueueTarget : Target{
+class NFQueueTarget : TemplateTarget<xt_nfqueue_target>{
   public:
   /* Constructors */
   NFQueueTarget();
@@ -477,7 +489,7 @@ class NFQueueTarget : Target{
  * Collects statistics and rate estimation calculations and saves results to be used by rateest
  * match
  */
-class RateEstTarget : Target{
+class RateEstTarget : TemplateTarget<xt_rateest_target>{
   public:
   /* Constructors */
   RateEstTarget();
@@ -502,7 +514,7 @@ class RateEstTarget : Target{
 /** 
  * Used with SELinux, allows for security marks and security context to be set on matching packets
  */
-class SecMarkTarget : Target{
+class SecMarkTarget : TemplateTarget<xt_secmark_target>{
   public:
   /* Constructors */
   SecMarkTarget();
@@ -526,7 +538,7 @@ class SecMarkTarget : Target{
  * system. Requires connection tracking because sequence numbers need to be tracked. Should not be
  * needed to protect linux servers after Linux 4.4.
  */
-class SynproxyTarget : Target{
+class SynproxyTarget : TemplateTarget<xt_synproxy_target>{
   public:
   /* Constructors */
   SynproxyTarget();
@@ -558,7 +570,7 @@ class SynproxyTarget : Target{
  * Requires matching tcp protocol
  * Default clamps mss to path_MTU - 40/60 (ipv4/ipv6)
  */
-class TcpmssTarget : Target{
+class TcpmssTarget : TemplateTarget<xt_tcpmss_target>{
   public:
   /* Constructors */
   TcpmssTarget();
@@ -578,7 +590,7 @@ class TcpmssTarget : Target{
  * Strips designated options from the tcp header.
  * Requires matching to tcp protocol
  */
-class TcpOptStripTarget : Target{
+class TcpOptStripTarget : TemplateTarget<xt_tcpoptstrip_target>{
   public:
   /* Constructors */
   TcpOptStripTarget();
@@ -601,7 +613,7 @@ class TcpOptStripTarget : Target{
 /**
  * Clones the matched packet and redirects it to another machine.
  */
-class TeeTarget : Target{
+class TeeTarget : TemplateTarget<xt_tee_target>{
   public:
   /* Constructors */
   TeeTarget();
@@ -622,7 +634,7 @@ class TeeTarget : Target{
  * Only valid in the mangle table's PREROUTING chain or user defined chains
  * Only valid if matching tcp or udp protocols
  */
-class TproxyTarget : Target{
+class TproxyTarget : TemplateTarget<xt_tproxy_target>{
   public:
   /* Constructors */
   TproxyTarget();
@@ -649,7 +661,7 @@ class TproxyTarget : Target{
  * Works like DROP but sends back a error packet.
  * Only valid in INPUT, FOWARD, and OUTPUT chains
  */
-class RejectIPTarget : Target{
+class RejectIPTarget : TemplateTarget<ipt_reject_target>{
   public:
   /* Constructors */
   RejectIPTarget();
@@ -677,7 +689,7 @@ class RejectIPTarget : Target{
  * Never set or increment the TTL of packets leaving you local network!!!
  * Only valid in mangle table
  */
-class TtlTarget : Target{
+class TtlTarget : TemplateTarget<ipt_ttl_target>{
   public:
   /* Constructors */
   TtlTarget();
@@ -707,7 +719,7 @@ class TtlTarget : Target{
  * Never set or increment the HL of packets leaving you local network!!!
  * Only valid in mangle table
  */
-class HlTarget : Target{
+class HlTarget : TemplateTarget<ip6t_hl_target>{
   public:
   /* Constructors */
   HlTarget();
@@ -734,7 +746,7 @@ class HlTarget : Target{
  * Used for Network Prefix Translation for IPv6 packets
  * Only valid in mangle table
  */
-class NptTarget : Target{
+class NptTarget : TemplateTarget<ip6t_npt_target>{
   public:
   /* Constructors */
   NptTarget();
@@ -758,7 +770,7 @@ class NptTarget : Target{
  * Works like DROP but sends back a error packet.
  * Only valid in INPUT, FOWARD, and OUTPUT chains
  */
-class RejectIP6Target : Target{
+class RejectIP6Target : TemplateTarget<ip6t_reject_target>{
   public:
   /* Constructors */
   RejectIP6Target();
