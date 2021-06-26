@@ -5,7 +5,7 @@
 #include <iostream>
 #include <arpa/inet.h>
 #include <xtables.h>
-#include "firewall.h"
+#include "firewall.hpp"
 
 #define string std::string
 #define runtime_error std::runtime_error

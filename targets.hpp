@@ -12,7 +12,7 @@ typedef xt_connsecmark_target_info xt_connsecmark_target;
 typedef xt_ct_target_info_v1 xt_ct_target;
 typedef xt_DSCP_info xt_dscp_target;
 typedef xt_tos_target_info xt_tos_target;
-typedef xt_tos_target_info xt_hmark_target;
+typedef xt_hmark_info xt_hmark_target;
 typedef idletimer_tg_info xt_idletimer_target; 
 typedef xt_led_info xt_led_target;
 typedef xt_log_info xt_log_target;
@@ -64,7 +64,7 @@ class TemplateTarget : Target {
   /* Returns target specs */
   T getSpecs() const;
   
-  private:
+  protected:
   T specs;
 };
 
@@ -81,11 +81,8 @@ class AuditTarget : TemplateTarget<xt_audit_target>{
    */
   void setType(unsigned char type);
 
-  /* Returns target specs */
-  xt_audit_target getSpecs();
-
-  private:
-  xt_audit_target specs;
+  /* Returns name of target */
+  virtual string getName() const;
 };
 
 /* Used only in mangle table */
@@ -100,11 +97,8 @@ class ChecksumTarget : TemplateTarget<xt_checksum_target>{
    */
   void setOp(bool op);
 
-  /* Returns target specs */
-  xt_checksum_target getSpecs();
-
-  private:
-  xt_checksum_target specs;
+  /* Returns name of target */
+  virtual string getName() const;
 };
 
 class ClassifyTarget : TemplateTarget<xt_classify_target>{
@@ -120,11 +114,8 @@ class ClassifyTarget : TemplateTarget<xt_classify_target>{
    */
   void setClass(unsigned int major, unsigned int minor);
 
-  /* Returns target specs */
-  xt_classify_target getSpecs();
-
-  private:
-  xt_classify_target specs;
+  /* Returns name of target */
+  virtual string getName() const;
 };
 
 class ConnmarkTarget : TemplateTarget<xt_connmark_target>{
@@ -157,11 +148,8 @@ class ConnmarkTarget : TemplateTarget<xt_connmark_target>{
    */
   void restoreMark(unsigned int ctmask, unsigned int nfmask);
 
-  /* Return target specs */
-  xt_connmark_target getSpecs();
-
-  private:
-  xt_connmark_target specs;
+  /* Returns name of target */
+  virtual string getName() const;
 };
 
 /* Valid in security table (and mangle table for older kernels) */
@@ -181,11 +169,8 @@ class ConnsecmarkTarget : TemplateTarget<xt_connsecmark_target>{
    */
   void setMode(unsigned char mode);
 
-  /* Returns target specs */
-  xt_connsecmark_target getSpecs();
-
-  private:
-  xt_connsecmark_target specs;
+  /* Returns name of target */
+  virtual string getName() const;
 };
 
 /* Only valid in raw table */
@@ -216,13 +201,13 @@ class CTTarget : TemplateTarget<xt_ct_target>{
    * reply, assured, protoinfo, helper, mark (ctmark), natseqinfo, secmark (ctsecmark)
    * "events" specified events
    */
-  void setCTEvents(int events);
+  void setCTEvents(unsigned int events);
 
   /**
    * Only generate speceific expectation events for this connection. Event types are: new
    * "events" specified events
    */
-  void setExpEvents(int events);
+  void setExpEvents(unsigned int events);
 
   /**
    * Assigns packet to a zone and only does lookups in that zone. Can set mode to specify packets
@@ -234,11 +219,8 @@ class CTTarget : TemplateTarget<xt_ct_target>{
    */
   void setZone(unsigned char flags, unsigned int id);
 
-  /* Returns target specs */
-  xt_ct_target getSpecs();
-
-  private:
-  xt_ct_target specs;
+  /* Returns name of target */
+  virtual string getName() const;
 };
 
 /* Only valid in mangle table */
@@ -254,11 +236,8 @@ class DscpTarget : TemplateTarget<xt_dscp_target>{
    */
   void setDscp(unsigned char value);
 
-  /* Returns target specs */
-  xt_dscp_target getSpecs();
-
-  private:
-  xt_dscp_target specs;
+  /* Returns name of target */
+  virtual string getName() const;
 };
 
 // Valid only in mangle table
@@ -275,11 +254,8 @@ class TosTarget : TemplateTarget<xt_tos_target>{
    */
   void setTos(unsigned char value, unsigned char mask);
 
-  /* Returns target specs */
-  xt_tos_target getSpecs();
-
-  private:
-  xt_tos_target specs;
+  /* Returns name of target */
+  virtual string getName() const;
 };
 
 /**
@@ -299,9 +275,6 @@ class HmarkTarget : TemplateTarget<xt_hmark_target>{
   void setSPort(unsigned int mask);
   void setDPort(unsigned int mask);
 
-  /* Sets the spi mask */
-  void setSpi(unsigned int mask);
-
   /* Sets a layer 4 protocol number mask */
   void setProto(unsigned char mask);
 
@@ -314,11 +287,8 @@ class HmarkTarget : TemplateTarget<xt_hmark_target>{
   /* Offset the start marks from */
   void setOffset(unsigned int value);
 
-  /* Returns target specs */
-  xt_hmark_target getSpecs();
-
-  private:
-  xt_hmark_target specs;
+  /* Returns name of target */
+  virtual string getName() const;
 };
 
 /**
@@ -338,11 +308,8 @@ class IdletimerTarget : TemplateTarget<xt_idletimer_target>{
   /* Sets amount of time in seconds a notification will trigger */
   void setTimeout(unsigned int timeout);
 
-  /* Returns target specs */
-  xt_idletimer_target getSpecs();
-
-  private:
-  xt_idletimer_target specs;
+  /* Returns name of target */
+  virtual string getName() const;
 };
 
 /**
@@ -367,11 +334,8 @@ class LedTarget : TemplateTarget<xt_led_target>{
   /* Sets whether the led blinks when triggered, even if the LED is already on */
   void setAlwaysBlink(bool alwaysBlink);
 
-  /* Returns target specs */
-  xt_led_target getSpecs();
-
-  private:
-  xt_led_target specs;
+  /* Returns name of target */
+  virtual string getName() const;
 };
 
 /**
@@ -399,11 +363,8 @@ class LogTarget : TemplateTarget<xt_log_target>{
    */
   void setFlags(unsigned char flags);
 
-  /* Returns target specs */
-  xt_log_target getSpecs();
-
-  private:
-  xt_log_target specs;
+  /* Returns name of target */
+  virtual string getName() const;
 };
 
 /**
@@ -422,11 +383,8 @@ class MarkTarget : TemplateTarget<xt_mark_target>{
   /* Set bits to be zeroed out before XOR function */
   void setMask(unsigned int mask);
 
-  /* Returns target specs */
-  xt_mark_target getSpecs();
-
-  private:
-  xt_mark_target specs;
+  /* Returns name of target */
+  virtual string getName() const;
 };
 
 /**
@@ -452,11 +410,8 @@ class NFLogTarget : TemplateTarget<xt_nflog_target>{
   /* Sets number of bytes to be copied to userspace. Only used with nfnetlink_log */
   void setSize(unsigned int size);
 
-  /* Returns target specs */
-  xt_nflog_target getSpecs();
-
-  private:
-  xt_nflog_target specs;
+  /* Returns name of target */
+  virtual string getName() const;
 };
 
 class NFQueueTarget : TemplateTarget<xt_nfqueue_target>{
@@ -478,11 +433,8 @@ class NFQueueTarget : TemplateTarget<xt_nfqueue_target>{
   /* When balance option is used, sets the cpud id as an index to map packets */
   void setCpuFanout();
 
-  /* Returns target specs */
-  xt_nfqueue_target getSpecs();
-
-  private:
-  xt_nfqueue_target specs;
+  /* Returns name of target */
+  virtual string getName() const;
 };
 
 /**
@@ -504,11 +456,8 @@ class RateEstTarget : TemplateTarget<xt_rateest_target>{
   /* Set rate measurement averaging time constant */
   void setEwmaLog(unsigned char ewmalog);
 
-  /* Returns target specs */
-  xt_rateest_target getSpecs();
-
-  private:
-  xt_rateest_target specs;
+  /* Returns name of target */
+  virtual string getName() const;
 };
 
 /** 
@@ -526,11 +475,8 @@ class SecMarkTarget : TemplateTarget<xt_secmark_target>{
   /* Set security context to be caught by SELinux */
   void setContext(string context);
 
-  /* Returns target specs */
-  xt_secmark_target getSpecs();
-
-  private:
-  xt_secmark_target specs;
+  /* Returns name of target */
+  virtual string getName() const;
 };
 
 /**
@@ -556,11 +502,8 @@ class SynproxyTarget : TemplateTarget<xt_synproxy_target>{
   /* Enables passing client timestamp option to backend */
   void setTimestamps();
 
-  /* Returns target specs */
-  xt_synproxy_target getSpecs();
-
-  private:
-  xt_synproxy_target specs;
+  /* Returns name of target */
+  virtual string getName() const;
 };
 
 /**
@@ -579,11 +522,8 @@ class TcpmssTarget : TemplateTarget<xt_tcpmss_target>{
   /* Sets MSS option to a specific value */
   void setMss(unsigned int mss);
 
-  /* Returns target specs */
-  xt_tcpmss_target getSpecs();
-
-  private:
-  xt_tcpmss_target specs;
+  /* Returns name of target */
+  virtual string getName() const;
 };
 
 /**
@@ -603,11 +543,8 @@ class TcpOptStripTarget : TemplateTarget<xt_tcpoptstrip_target>{
    */
   void setOptions(unsigned int* options, int size);
 
-  /* Returns target specs */
-  xt_tcpoptstrip_target getSpecs();
-
-  private:
-  xt_tcpoptstrip_target specs;
+  /* Returns name of target */
+  virtual string getName() const;
 };
 
 /**
@@ -622,11 +559,8 @@ class TeeTarget : TemplateTarget<xt_tee_target>{
   /* Set the ip address to send the packet */
   void setIp(string ip);
 
-  /* Returns target specs */
-  xt_tee_target getSpecs();
-
-  private:
-  xt_tee_target specs;
+  /* Returns name of target */
+  virtual string getName() const;
 };
 
 /**
@@ -650,11 +584,8 @@ class TproxyTarget : TemplateTarget<xt_tproxy_target>{
   /* Sets mark and mask to set the fwmark of the packet */
   void setMark(unsigned int mark, unsigned int mask);
 
-  /* Returns target specs */
-  xt_tproxy_target getSpecs();
-
-  private:
-  xt_tproxy_target specs;
+  /* Returns name of target */
+  virtual string getName() const;
 };
 
 /**
@@ -675,11 +606,8 @@ class RejectIPTarget : TemplateTarget<ipt_reject_target>{
    */
   void setType(ipt_reject_with type);
 
-  /* Returns target specs */
-  ipt_reject_target getSpecs();
-
-  private:
-  ipt_reject_target specs;
+  /* Returns name of target */
+  virtual string getName() const;
 };
 
 /**
@@ -705,11 +633,8 @@ class TtlTarget : TemplateTarget<ipt_ttl_target>{
    */
   void setEdit(unsigned char value, unsigned char mode);
 
-  /* Returns target specs */
-  ipt_ttl_target getSpecs();
-
-  private:
-  ipt_ttl_target specs;
+  /* Returns name of target */
+  virtual string getName() const;
 };
 
 /**
@@ -735,11 +660,8 @@ class HlTarget : TemplateTarget<ip6t_hl_target>{
    */
   void setEdit(unsigned char value, unsigned char mode);
 
-  /* Returns target specs */
-  ip6t_hl_target getSpecs();
-
-  private:
-  ip6t_hl_target specs;
+  /* Returns name of target */
+  virtual string getName() const;
 };
 
 /**
@@ -759,11 +681,8 @@ class NptTarget : TemplateTarget<ip6t_npt_target>{
    */
   void setTranslate(string src, string dst);
 
-  /* Returns target specs */
-  ip6t_npt_target getSpecs();
-
-  private:
-  ip6t_npt_target specs;
+  /* Returns name of target */
+  virtual string getName() const;
 };
 
 /**
@@ -784,11 +703,9 @@ class RejectIP6Target : TemplateTarget<ip6t_reject_target>{
    */
   void setType(ip6t_reject_with type);
 
-  /* Returns target specs */
-  ip6t_reject_target getSpecs();
-
-  private:
-  ip6t_reject_target specs;
+  /* Returns name of target */
+  virtual string getName() const;
 };
 
+#include "targets.cpp"
 #endif
