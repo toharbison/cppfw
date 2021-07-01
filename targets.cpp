@@ -1,6 +1,7 @@
 #include <stdexcept>
 #include <cstring>
 #include "targets.hpp"
+#include "strToIp.hpp"
 
 typedef std::runtime_error runtime_error;
 
@@ -226,12 +227,12 @@ HmarkTarget::HmarkTarget(){
 }
 
 void HmarkTarget::setSrc(string mask){
-  this->specs.src_mask.in.s_addr = inet_addr(mask.c_str());
+  this->specs.src_mask = strToNfAddr(mask);
   this->specs.flags |= XT_HMARK_FLAG(XT_HMARK_SADDR_MASK);
 }
 
 void HmarkTarget::setDst(string mask){
-  this->specs.dst_mask.in.s_addr = inet_addr(mask.c_str());
+  this->specs.dst_mask = strToNfAddr(mask);
   this->specs.flags |= XT_HMARK_FLAG(XT_HMARK_DADDR_MASK);
 }
 
@@ -275,4 +276,460 @@ void HmarkTarget::setOffset(unsigned int value){
 
 string HmarkTarget::getName() const{
   return "HMARK";
+}
+
+IdletimerTarget::IdletimerTarget(){
+  memset(this->specs.label, 0, MAX_IDLETIMER_LABEL_SIZE);
+  this->specs.timeout = 0;
+}
+
+IdletimerTarget::IdletimerTarget(string label, unsigned int timeout){
+  if(label.size() <= MAX_IDLETIMER_LABEL_SIZE)
+    setLabel(label);
+  else
+    throw runtime_error("Idle Timer label to large");
+  setTimeout(timeout);
+}
+
+void IdletimerTarget::setLabel(string label){
+  strcpy(this->specs.label, label.c_str());
+}
+
+void IdletimerTarget::setTimeout(unsigned int timeout){
+  this->specs.timeout = timeout;
+}
+
+string IdletimerTarget::getName() const{
+  return "IDLETIMER";
+}
+
+LedTarget::LedTarget(){
+  memset(this->specs.id, 0, 27);
+  setDelay(0);
+  setAlwaysBlink(false);
+}
+
+LedTarget::LedTarget(string name, unsigned int delay, bool alwaysBlink){
+  setName(name);
+  setDelay(delay);
+  setAlwaysBlink(alwaysBlink);
+}
+
+void LedTarget::setName(string name){
+  strncpy(this->specs.id, name.c_str(), 26);
+}
+
+void LedTarget::setDelay(unsigned int delay){
+  this->specs.delay = delay;
+}
+
+void LedTarget::setAlwaysBlink(bool alwaysBlink){
+  this->specs.always_blink = (unsigned char) alwaysBlink;
+}
+
+string LedTarget::getName() const{
+  return "LED";
+}
+
+LogTarget::LogTarget(){
+  memset(this->specs.prefix, 0, 30);
+  setLevel(0);
+  setFlags(0);
+}
+
+LogTarget::LogTarget(string prefix, unsigned char level, unsigned char flags){
+  setPrefix(prefix);
+  setLevel(level);
+  setFlags(flags);
+}
+
+void LogTarget::setPrefix(string prefix){
+  strncpy(this->specs.prefix, prefix.c_str(), 30);
+}
+
+void LogTarget::setLevel(unsigned char level){
+  this->specs.level = level;
+}
+
+void LogTarget::setFlags(unsigned char flags){
+  if(flags <= XT_LOG_MASK)
+    this->specs.logflags = flags;
+  else
+    throw runtime_error("Unrecognized log target flag");
+}
+
+string LogTarget::getName() const{
+  return "LOG";
+}
+
+MarkTarget::MarkTarget(){
+  setMark(0);
+  setMask(0);
+}
+
+MarkTarget::MarkTarget(unsigned int mark, unsigned int mask){
+  setMark(mark);
+  setMask(mask);
+}
+
+void MarkTarget::setMark(unsigned int mark){
+  this->specs.mark = mark;
+}
+
+void MarkTarget::setMask(unsigned int mask){
+  this->specs.mask = mask;
+}
+
+string MarkTarget::getName() const{
+  return "MARK";
+}
+
+NFLogTarget::NFLogTarget(){
+  memset(this->specs.prefix, 0, 64);
+  setGroup(XT_NFLOG_DEFAULT_GROUP);
+  setThreshold(XT_NFLOG_DEFAULT_THRESHOLD);
+  this->specs.flags = 0;
+}
+
+NFLogTarget::NFLogTarget(string prefix, unsigned int group, unsigned int threshold){
+  setPrefix(prefix);
+  setGroup(group);
+  setThreshold(threshold);
+  this->specs.flags = 0;
+}
+
+void NFLogTarget::setPrefix(string prefix){
+  strncpy(this->specs.prefix, prefix.c_str(), 64);
+}
+
+void NFLogTarget::setGroup(unsigned int group){
+  if(group <= 0xffff)
+    this->specs.group = group;
+  else
+    throw runtime_error("Nf log group number too large");
+}
+
+void NFLogTarget::setThreshold(unsigned int threshold){
+  if(threshold <= 0xffff)
+    this->specs.threshold = threshold;
+  else
+    throw runtime_error("Nf log threshold number too large");
+}
+  
+void NFLogTarget::setSize(unsigned int size){
+  this->specs.len = size;
+  this->specs.flags |= XT_NFLOG_F_COPY_LEN;
+}
+
+string NFLogTarget::getName() const{
+  return "NFLOG";
+}
+
+NFQueueTarget::NFQueueTarget(){
+  setBalance(0,0);
+  this->specs.flags = 0;
+}
+
+NFQueueTarget::NFQueueTarget(unsigned int num){
+  setNum(num);
+  this->specs.flags = 0;
+}
+
+NFQueueTarget::NFQueueTarget(unsigned int first, unsigned int last){
+  setBalance(first, last);
+  this->specs.flags = 0;
+}
+
+void NFQueueTarget::setNum(unsigned int num){
+  if(num <= 0xffff){
+    this->specs.queuenum = num;
+    this->specs.queues_total = 1;
+  }
+  else
+    throw runtime_error("Nf queue number to large");
+}
+
+void NFQueueTarget::setBalance(unsigned int first, unsigned int last){
+  if(last < first)
+    throw runtime_error("Invalid nf queue interval");
+  else if(first <= 0xffff && last <= 0xffff){
+    this->specs.queuenum = first;
+    this->specs.queues_total = last - first + 1;
+  }
+  else
+    throw runtime_error("Nf queue number to large");
+}
+
+void NFQueueTarget::setBypass(){
+  this->specs.flags |= NFQ_FLAG_BYPASS;
+}
+
+void NFQueueTarget::setCpuFanout(){
+  this->specs.flags |= NFQ_FLAG_CPU_FANOUT;
+}
+
+string NFQueueTarget::getName() const{
+  return "NFQUEUE";
+}
+
+RateEstTarget::RateEstTarget(){
+  memset(this->specs.name, 0, IFNAMSIZ);
+  setInterval(0);
+  setEwmaLog(0);
+}
+
+RateEstTarget::RateEstTarget(string name, char interval, unsigned char ewmalog){
+  setName(name);
+  setInterval(interval);
+  setEwmaLog(ewmalog);
+}
+
+void RateEstTarget::setName(string name){
+  strncpy(this->specs.name, name.c_str(), IFNAMSIZ);
+}
+
+void RateEstTarget::setInterval(char interval){
+  this->specs.interval = interval;
+}
+
+void RateEstTarget::setEwmaLog(unsigned char ewmalog){
+  this->specs.ewma_log = ewmalog;
+}
+
+string RateEstTarget::getName() const{
+  return "RATEEST";
+}
+
+SecMarkTarget::SecMarkTarget(){
+  this->specs.mode = SECMARK_MODE_SEL;
+  setSecID(0);
+  memset(this->specs.secctx, 0, SECMARK_SECCTX_MAX);
+}
+
+SecMarkTarget::SecMarkTarget(unsigned int secid, string context){
+  this->specs.mode = SECMARK_MODE_SEL;
+  setSecID(secid);
+  setContext(context);
+}
+
+void SecMarkTarget::setSecID(unsigned int secid){
+  this->specs.secid = secid;
+}
+
+void SecMarkTarget::setContext(string context){
+  strncpy(this->specs.secctx, context.c_str(), SECMARK_SECCTX_MAX);
+}
+
+string SecMarkTarget::getName() const{
+  return "SECMARK";
+}
+
+SynproxyTarget::SynproxyTarget(){
+  this->specs.options = 0;
+  this->specs.wscale = 0;
+  this->specs.mss = 0;
+}
+
+SynproxyTarget::SynproxyTarget(unsigned short mss, unsigned char wscale){
+  this->specs.options = 0;
+  setMss(mss);
+  setWinScale(wscale);
+}
+
+void SynproxyTarget::setMss(unsigned short mss){
+  this->specs.mss = mss;
+  this->specs.options |= XT_SYNPROXY_OPT_MSS;
+}
+
+void SynproxyTarget::setWinScale(unsigned char wscale){
+  this->specs.wscale = wscale;
+  this->specs.options |= XT_SYNPROXY_OPT_WSCALE;
+}
+
+void SynproxyTarget::setSackPerm(){
+  this->specs.options |= XT_SYNPROXY_OPT_SACK_PERM;
+}
+
+void SynproxyTarget::setTimestamps(){
+  this->specs.options |= XT_SYNPROXY_OPT_TIMESTAMP;
+}
+
+string SynproxyTarget::getName() const{
+  return "SYNPROXY";
+}
+
+TcpmssTarget::TcpmssTarget(){
+  setMss(XT_TCPMSS_CLAMP_PMTU);
+}
+
+TcpmssTarget::TcpmssTarget(unsigned short mss){
+  setMss(mss);
+}
+
+void TcpmssTarget::setMss(unsigned short mss){
+  this->specs.mss = mss;
+}
+
+string TcpmssTarget::getName() const{
+  return "TCPMSS";
+}
+
+TcpOptStripTarget::TcpOptStripTarget(){
+  memset(this->specs.strip_bmap, 0, 32);
+}
+
+TcpOptStripTarget::TcpOptStripTarget(unsigned int* options, int size){
+  setOptions(options, size);
+}
+
+void TcpOptStripTarget::setOptions(unsigned int* options, int size){
+  for(int i = 0; i < size; i++)
+    tcpoptstrip_set_bit(this->specs.strip_bmap, options[i]);
+}
+
+string TcpOptStripTarget::getName() const{
+  return "TCPOPTSTRIP";
+}
+
+TeeTarget::TeeTarget(){
+  memset(this->specs.gw.all, 0, 16);
+  memset(this->specs.oif, 0, 16);
+}
+
+TeeTarget::TeeTarget(string ip){
+  memset(this->specs.oif, 0, 16);
+  setIp(ip);
+}
+
+void TeeTarget::setIp(string ip){
+  this->specs.gw = strToNfAddr(ip);
+}
+
+string TeeTarget::getName() const{
+  return "TEE";
+}
+
+TproxyTarget::TproxyTarget(){
+  setMark(0,0);
+  memset(this->specs.laddr.all, 0, 16);
+  this->specs.lport = 0;
+}
+
+TproxyTarget::TproxyTarget(unsigned short port){
+  setMark(0,0);
+  memset(this->specs.laddr.all, 0, 16);
+  setPort(port);
+}
+
+TproxyTarget::TproxyTarget(unsigned short port, string ip){
+  setMark(0,0);
+  setIp(ip);
+  setPort(port);
+}
+
+void TproxyTarget::setPort(unsigned short port){
+  unsigned short be = port << 8;
+  be |= port >> 8;
+  this->specs.lport = be;
+}
+
+void TproxyTarget::setIp(string ip){
+  this->specs.laddr = strToNfAddr(ip);
+}
+
+void TproxyTarget::setMark(unsigned int mark, unsigned int mask){
+  this->specs.mark_value = mark;
+  this->specs.mark_mask = mask;
+}
+
+string TproxyTarget::getName() const{
+  return "TPROXY";
+}
+
+RejectIPTarget::RejectIPTarget(){
+  setType(IPT_ICMP_ECHOREPLY);
+}
+
+RejectIPTarget::RejectIPTarget(ipt_reject_with type){
+  setType(type);
+}
+
+void RejectIPTarget::setType(ipt_reject_with type){
+  this->specs.with = type;
+}
+
+string RejectIPTarget::getName() const{
+  return "REJECT";
+}
+
+TtlTarget::TtlTarget(){
+  setEdit(0,0);
+}
+
+TtlTarget::TtlTarget(unsigned char value, unsigned char mode){
+  setEdit(value, mode);
+}
+
+void TtlTarget::setEdit(unsigned char value, unsigned char mode){
+  this->specs.mode = mode;
+  this->specs.ttl = value;
+}
+
+string TtlTarget::getName() const{
+  return "TTL";
+}
+
+HlTarget::HlTarget(){
+  setEdit(0, 0);
+}
+
+HlTarget::HlTarget(unsigned char value, unsigned char mode){
+  setEdit(value, mode);
+}
+
+void HlTarget::setEdit(unsigned char value, unsigned char mode){
+  this->specs.mode = mode;
+  this->specs.hop_limit = value;
+}
+
+string HlTarget::getName() const{
+  return "HL";
+}
+
+NptTarget::NptTarget(){
+  memset(this->specs.src_pfx.all, 0, 16);
+  memset(this->specs.dst_pfx.all, 0, 16);
+  this->specs.src_pfx_len = 0;
+  this->specs.dst_pfx_len = 0;
+}
+
+NptTarget::NptTarget(string src, string dst, unsigned char srcLen, unsigned char dstLen){
+  setTranslate(src, dst, srcLen, dstLen);
+}
+
+void NptTarget::setTranslate(string src, string dst, unsigned char srcLen, unsigned char dstLen){
+  this->specs.src_pfx = strToNfAddr(src);
+  this->specs.dst_pfx = strToNfAddr(dst);
+  this->specs.src_pfx_len = srcLen;
+  this->specs.dst_pfx_len = dstLen;
+}
+
+string NptTarget::getName() const{
+  return "NPT";
+}
+
+RejectIP6Target::RejectIP6Target(){
+  setType(IP6T_ICMP6_ECHOREPLY);
+}
+
+RejectIP6Target::RejectIP6Target(ip6t_reject_with type){
+  setType(type);
+}
+
+void RejectIP6Target::setType(ip6t_reject_with type){
+  this->specs.with = type;
+}
+
+string RejectIP6Target::getName() const{
+  return "REJECT";
 }

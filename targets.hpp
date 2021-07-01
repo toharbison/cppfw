@@ -488,10 +488,10 @@ class SynproxyTarget : TemplateTarget<xt_synproxy_target>{
   public:
   /* Constructors */
   SynproxyTarget();
-  SynproxyTarget(unsigned int mss, unsigned char wscale);
+  SynproxyTarget(unsigned short mss, unsigned char wscale);
 
   /* Sets maximum segment size announced to clients. Must match backend */
-  void setMss(unsigned int mss);
+  void setMss(unsigned short mss);
 
   /* Sets window scale announced to clients. Must match backend */
   void setWinScale(unsigned char wscale);
@@ -517,10 +517,10 @@ class TcpmssTarget : TemplateTarget<xt_tcpmss_target>{
   public:
   /* Constructors */
   TcpmssTarget();
-  TcpmssTarget(unsigned int mss);
+  TcpmssTarget(unsigned short mss);
 
   /* Sets MSS option to a specific value */
-  void setMss(unsigned int mss);
+  void setMss(unsigned short mss);
 
   /* Returns name of target */
   virtual string getName() const;
@@ -572,11 +572,11 @@ class TproxyTarget : TemplateTarget<xt_tproxy_target>{
   public:
   /* Constructors */
   TproxyTarget();
-  TproxyTarget(unsigned int port);
-  TproxyTarget(unsigned int port, string ip);
+  TproxyTarget(unsigned short port);
+  TproxyTarget(unsigned short port, string ip);
 
   /* Sets destination port. 0 means desination port stays the same */
-  void setPort(unsigned int port);
+  void setPort(unsigned short port);
 
   /* Sets destination ip address. Ip of incoming interface is default */
   void setIp(string ip);
@@ -672,14 +672,14 @@ class NptTarget : TemplateTarget<ip6t_npt_target>{
   public:
   /* Constructors */
   NptTarget();
-  NptTarget(string src, string dst);
+  NptTarget(string src, string dst, unsigned char srcLen, unsigned char dstLen);
 
   /**
    * Define how the translation will work
    * "src" ip prefix you want to translate and length. In form prefix/length
    * "dst" ip prefix you want to use in translation. In form prefix/length
    */
-  void setTranslate(string src, string dst);
+  void setTranslate(string src, string dst, unsigned char srcLen, unsigned char dstLen);
 
   /* Returns name of target */
   virtual string getName() const;
