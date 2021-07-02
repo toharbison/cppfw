@@ -24,7 +24,7 @@ Firewall::~Firewall(){
 }
 
 void Firewall::addRule(string dstIp, string srcIp, string iFace, string oFace, 
-    string proto, std::vector<string>* entryMatches, string entryTarget){ 
+    string proto, std::vector<string>* entryMatches, Target* entryTarget){ 
   unsigned int numOfMatches = 0;
   if(entryMatches)
     numOfMatches = entryMatches->size();
@@ -83,6 +83,10 @@ void Firewall::addRule(string dstIp, string srcIp, string iFace, string oFace,
   }
 
 
+}
+
+void removeRule(int num, string chain, string table){
+  
 }
 
 string Firewall::checkLogs(int lines){

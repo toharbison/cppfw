@@ -1,6 +1,7 @@
 #ifndef MATCH_HEADERS_H
 #define MATCH_HEADERS_H
 
+#include <stdbool.h>
 #include <linux/netfilter/xt_addrtype.h>
 #include <linux/netfilter/xt_bpf.h>
 #include <linux/netfilter/xt_cgroup.h>
