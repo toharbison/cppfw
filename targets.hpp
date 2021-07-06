@@ -60,9 +60,9 @@ template<typename T>
 class TemplateTarget : Target {
   public:
   /* Returns size of target struct */
-  unsigned int getSize() const;
+  unsigned int getSize() const{ return sizeof(T); }
   /* Returns target specs */
-  T getSpecs() const;
+  T getSpecs() const{ return this->specs; }
   
   protected:
   T specs;
@@ -707,5 +707,4 @@ class RejectIP6Target : TemplateTarget<ip6t_reject_target>{
   virtual string getName() const;
 };
 
-#include "targets.cpp"
 #endif

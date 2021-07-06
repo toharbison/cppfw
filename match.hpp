@@ -39,9 +39,9 @@ template<class T>
 class TemplateMatch : Match{
   public:
   /* Returns size of struct */
-  unsigned int getSize() const;
+  unsigned int getSize() const{ return sizeof(T); }
   /* Returns match specifications */
-  T getSpecs() const;
+  T getSpecs() const{ return this->specs; }
 
   protected:
   T specs;
@@ -51,12 +51,18 @@ class AddrtypeMatch : TemplateMatch<xt_addrtype_match>{
   public:
   /* Constructors */
   AddrtypeMatch();
-  AddrtypeMatch(string src, string dst);
+  AddrtypeMatch(unsigned short src, unsigned short dst);
 
-  /* Sets address type of source ip */
-  void setSrc(string src);
-  /* Sets address type of destination ip */
-  void setDst(string dst);
+  /** 
+   * Sets address type of source/destination ip, address types prefixed with "XT_ADDRTYPE_" are:
+   * UNSPEC, UNICAST, LOCAL, BROADCAST, ANYCAST, MULTICAST, BLACKHOLE, UNREACHABLE, PROHIBIT,
+   * THROW, NAT, and XRESOLVE
+   * "src" Source address type
+   * "dst" Destination address type
+   * "inv" Set to true to inverse sense of source/destination address type
+   */
+  void setSrc(unsigned short src, bool inv = false);
+  void setDst(unsigned short dst, bool inv = false);
 
   /* Limits matching to incoming interface */
   void limitIFace();
@@ -65,40 +71,38 @@ class AddrtypeMatch : TemplateMatch<xt_addrtype_match>{
 
   /* Returns name of match */
   string getName() const;
-
-  private:
-  unsigned short strToType(string str);
 };
 
 class BpfMatch : TemplateMatch<xt_bpf_match>{
   public:
   /* Constructors */
   BpfMatch();
-  BpfMatch(string progPath);
-  BpfMatch(char* code);
 
   /* Sets program path of BPF object */
   void setPath(string progPath);
   /* Sets path of pinned BPF program */
   void setPinPath(string progPath);
   /* Sets byte code of a BPF program */
-  void setProg(unsigned char* code);
+  void setProg(string code);
 
   /* Returns name of match */
   string getName() const;
+
+  private:
+  sock_fprog strToCode(string code) const;
 };
 
 class CgroupMatch : TemplateMatch<xt_cgroup_match>{
   public:
   /* Constructors */
   CgroupMatch();
-  CgroupMatch(string path);
-  CgroupMatch(unsigned int classid);
+  CgroupMatch(string path, bool inv = false);
+  CgroupMatch(unsigned int classid, bool inv = false);
 
   /* Sets path of cgroup2 membership */
-  void setPath(string path);
+  void setPath(string path, bool inv = false);
   /* Sets cgroup net_cls classid */
-  void setClassId(unsigned int classid);
+  void setClassId(unsigned int classid, bool inv = false);
 
   /* Returns name of match */
   string getName() const;
@@ -214,7 +218,7 @@ class UdpMatch : TemplateMatch<xt_udp_match>{
 };
 
 // ICMP types
-enum Icmp4Type{
+enum Icmp4Type : unsigned char{
   ECHO_REPLY = 0,
   DEST_UNREA = 3,
   SRC_QUENCH = 4,

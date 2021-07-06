@@ -5,16 +5,6 @@
 
 typedef std::runtime_error runtime_error;
 
-template<class T>
-T TemplateTarget<T>::getSpecs() const{
-  return this->specs;
-}
-
-template<class T>
-unsigned int TemplateTarget<T>::getSize() const{
-  return sizeof(T);
-}
-
 AuditTarget::AuditTarget(){
   this->specs.type = 0;
 }
