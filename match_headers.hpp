@@ -28,7 +28,6 @@
 #include <linux/netfilter/xt_mark.h>
 #include <linux/netfilter/xt_multiport.h>
 #include <linux/netfilter/xt_nfacct.h>
-#include <linux/netfilter/xt_osf.h>
 #include <linux/netfilter/xt_owner.h>
 #include <linux/netfilter/xt_physdev.h>
 #include <linux/netfilter/xt_pkttype.h>
@@ -49,7 +48,6 @@
 #include <linux/netfilter/xt_time.h>
 #include <linux/netfilter/xt_u32.h>
 #include <linux/netfilter_ipv4/ipt_ah.h>
-#include <linux/netfilter_ipv4/ipt_ecn.h>
 #include <linux/netfilter_ipv4/ipt_ttl.h>
 #include <linux/netfilter_ipv6/ip6t_ah.h>
 #include <linux/netfilter_ipv6/ip6t_frag.h>

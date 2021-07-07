@@ -1,9 +1,32 @@
 #include <stdexcept>
 #include <cstring>
 #include "targets.hpp"
-#include "strToIp.hpp"
 
 typedef std::runtime_error runtime_error;
+
+DropTarget::DropTarget(){
+  this->specs = 0;
+}
+
+string DropTarget::getName() const{
+  return "DROP";
+}
+
+AcceptTarget::AcceptTarget(){
+  this->specs = 0;
+}
+
+string AcceptTarget::getName() const{
+  return "ACCEPT";
+}
+
+ReturnTarget::ReturnTarget(){
+  this->specs = 0;
+}
+
+string ReturnTarget::getName() const{
+  return "RETURN";
+}
 
 AuditTarget::AuditTarget(){
   this->specs.type = 0;

@@ -6,6 +6,7 @@
 #include <libiptc/libiptc.h>
 #include <xtables.h>
 #include "targets.hpp"
+#include "matches.hpp"
 
 
 class Firewall{
@@ -27,7 +28,7 @@ class Firewall{
    * "target" is the target of packet
    */
   void addRule(std::string dstIp, std::string srcIp, std::string iFace, std::string oFace, 
-      std::string proto, std::vector<std::string>* matches, Target* target, string chain); 
+      std::string proto, std::vector<Match*>* matches, Target* target, string chain); 
 
   /**
    * Removes the rule of the given number from the given chain.
@@ -35,7 +36,7 @@ class Firewall{
    * "chain" name of chain to remove rule from
    * "table" name of table to remove rule from
    */
-  void removeRule(int num, string chain, string table);
+  void removeRule(unsigned num, string chain, string table);
 
   /* Checks logs and returns std::string of recent log messages
    * "lines" number of messages to return

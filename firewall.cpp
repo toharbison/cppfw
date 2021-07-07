@@ -3,7 +3,6 @@
 #include <cerrno>
 #include <stdexcept>
 #include <iostream>
-#include <arpa/inet.h>
 #include <xtables.h>
 #include "firewall.hpp"
 
@@ -24,18 +23,18 @@ Firewall::~Firewall(){
 }
 
 void Firewall::addRule(string dstIp, string srcIp, string iFace, string oFace, 
-    string proto, std::vector<string>* entryMatches, Target* entryTarget){ 
+    string proto, std::vector<Match*>* entryMatches, Target* entryTarget, string chain){ 
   unsigned int numOfMatches = 0;
   if(entryMatches)
     numOfMatches = entryMatches->size();
   ipt_entry* entry;
   xt_entry_match** matches = new xt_entry_match*[numOfMatches];
   memset(matches, 0, sizeof(xt_entry_match*) * numOfMatches); 
-  xt_standard_target* target;
+  xt_entry_target* target;
 
   // Align everything
   unsigned int entrySize = XT_ALIGN(sizeof(ipt_entry));
-  unsigned int targetSize = XT_ALIGN(sizeof(xt_standard_target));//XT_ALIGN(sizeof(xt_entry_target));
+  unsigned int targetSize = XT_ALIGN(sizeof(xt_entry_target) + entryTarget->getSize());
   unsigned int matchesSize = 0;
   unsigned int totalSize = entrySize + targetSize + matchesSize;
   entry = (ipt_entry*)calloc(1, totalSize);
@@ -43,15 +42,19 @@ void Firewall::addRule(string dstIp, string srcIp, string iFace, string oFace,
 
 
   if(srcIp != "")
-    entry->ip.src.s_addr = inet_addr(srcIp.c_str());
+    entry->ip.src = strToInAddr(srcIp);
   if(dstIp != "")
-    entry->ip.dst.s_addr = inet_addr(dstIp.c_str());
+    entry->ip.dst = strToInAddr(dstIp);
   //entry->ip.smsk.s_addr = inet_addr("255.255.255.255");
   //entry->ip.dmsk.s_addr = inet_addr("255.255.255.255");
-  if(iFace != "")
-    strcpy(entry->ip.iniface, iFace.c_str());
-  if(oFace != "")
-    strcpy(entry->ip.outiface, oFace.c_str());
+  if(iFace != ""){
+    strncpy(entry->ip.iniface, iFace.c_str(), IFNAMSIZ);
+    memset(entry->ip.iniface_mask, 1, (iFace.size() < IFNAMSIZ) ? iFace.size() + 1 : IFNAMSIZ); 
+  }
+  if(oFace != ""){
+    strncpy(entry->ip.outiface, oFace.c_str(), IFNAMSIZ);
+    memset(entry->ip.outiface_mask, 1, (oFace.size() < IFNAMSIZ) ? oFace.size() + 1 : IFNAMSIZ); 
+  }
   if(proto != "")
     entry->ip.proto = 0; 
   
@@ -59,34 +62,41 @@ void Firewall::addRule(string dstIp, string srcIp, string iFace, string oFace,
   entry->target_offset = entrySize + matchesSize;
   entry->next_offset = totalSize;
 
-  target = (xt_standard_target*) (entry->elems);
-  target->target.u.target_size = targetSize;
-  strcpy(target->target.u.user.name, "DROP");
-  target->verdict = -1;
+  target = (xt_entry_target*) (entry->elems + matchesSize);
+  target->u.target_size = targetSize;
+  strcpy(target->u.user.name, entryTarget->getName().c_str());
+  if(target->u.user.name == "DROP"){
+    int* verdict = (int*)target->data;
+    *verdict = NF_DROP;
+  }
 
-  const char* chain = "INPUT"; 
 
-  std::cout << iptc_get_target(entry, rules) << "\n";  
+  dump_entries(rules);
 
-  //dump_entries(rules);
-
-  if(!iptc_append_entry(chain, entry, rules)){
+  if(!iptc_append_entry(chain.c_str(), entry, rules)){
     string e = "Error adding rule\n";
     throw runtime_error(e += iptc_strerror(errno));
   }
 
-  //dump_entries(rules);
+  dump_entries(rules);
 
   if(!iptc_commit(rules)){
     string e = "Error commiting table\n";
     throw runtime_error(e += iptc_strerror(errno));
   }
 
-
 }
 
-void removeRule(int num, string chain, string table){
-  
+void Firewall::removeRule(unsigned num, string chain, string table){
+  if(!iptc_delete_num_entry(chain.c_str(), num, rules)){
+    string e = "Error removing rule\n";
+    throw runtime_error(e += iptc_strerror(errno));
+  }
+
+  if(!iptc_commit(rules)){
+    string e = "Error commiting table\n";
+    throw runtime_error(e += iptc_strerror(errno));
+  }
 }
 
 string Firewall::checkLogs(int lines){

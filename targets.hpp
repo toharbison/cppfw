@@ -3,6 +3,7 @@
 
 #include <string>
 #include "target_headers.hpp"
+#include "strToIp.hpp"
 typedef std::string string;
 typedef xt_audit_info xt_audit_target;
 typedef xt_CHECKSUM_info xt_checksum_target;
@@ -33,7 +34,7 @@ typedef ip6t_npt_tginfo ip6t_npt_target;
 typedef ip6t_reject_info ip6t_reject_target;
 
 #if 0
-class TemplateTarget : Target {
+class TemplateTarget : public Target {
   public:
   /* Constructors */
   TemplateTarget();
@@ -54,10 +55,12 @@ class Target {
   public:
   /* Returns name of target */
   virtual string getName() const = 0;
+  /* Returns size of target struct */
+  virtual unsigned getSize() const = 0;
 };
 
 template<typename T>
-class TemplateTarget : Target {
+class TemplateTarget : public Target {
   public:
   /* Returns size of target struct */
   unsigned int getSize() const{ return sizeof(T); }
@@ -68,8 +71,35 @@ class TemplateTarget : Target {
   T specs;
 };
 
+class DropTarget : public TemplateTarget<int>{
+  public:
+  /* Constructor */
+  DropTarget();
 
-class AuditTarget : TemplateTarget<xt_audit_target>{
+  /* Returns name of target */
+  string getName() const;
+};
+
+
+class AcceptTarget : public TemplateTarget<int>{
+  public:
+  /* Constructor */
+  AcceptTarget();
+
+  /* Returns name of target */
+  string getName() const;
+};
+
+class ReturnTarget : public TemplateTarget<int>{
+  public:
+  /* Constructor */
+  ReturnTarget();
+
+  /* Returns name of target */
+  string getName() const;
+};
+
+class AuditTarget : public TemplateTarget<xt_audit_target>{
   public:
   /* Constuctors */
   AuditTarget();
@@ -86,7 +116,7 @@ class AuditTarget : TemplateTarget<xt_audit_target>{
 };
 
 /* Used only in mangle table */
-class ChecksumTarget : TemplateTarget<xt_checksum_target>{
+class ChecksumTarget : public TemplateTarget<xt_checksum_target>{
   public:
   /* Constructors */
   ChecksumTarget();
@@ -101,7 +131,7 @@ class ChecksumTarget : TemplateTarget<xt_checksum_target>{
   virtual string getName() const;
 };
 
-class ClassifyTarget : TemplateTarget<xt_classify_target>{
+class ClassifyTarget : public TemplateTarget<xt_classify_target>{
   public:
   /* Constuctors */
   ClassifyTarget();
@@ -118,7 +148,7 @@ class ClassifyTarget : TemplateTarget<xt_classify_target>{
   virtual string getName() const;
 };
 
-class ConnmarkTarget : TemplateTarget<xt_connmark_target>{
+class ConnmarkTarget : public TemplateTarget<xt_connmark_target>{
   public:
   /* Constructors */
   ConnmarkTarget();
@@ -153,7 +183,7 @@ class ConnmarkTarget : TemplateTarget<xt_connmark_target>{
 };
 
 /* Valid in security table (and mangle table for older kernels) */
-class ConnsecmarkTarget : TemplateTarget<xt_connsecmark_target>{
+class ConnsecmarkTarget : public TemplateTarget<xt_connsecmark_target>{
   public:
   /* Constructors */
   ConnsecmarkTarget();
@@ -174,7 +204,7 @@ class ConnsecmarkTarget : TemplateTarget<xt_connsecmark_target>{
 };
 
 /* Only valid in raw table */
-class CTTarget : TemplateTarget<xt_ct_target>{
+class CTTarget : public TemplateTarget<xt_ct_target>{
   public:
   /* Constructors */
   CTTarget();
@@ -224,7 +254,7 @@ class CTTarget : TemplateTarget<xt_ct_target>{
 };
 
 /* Only valid in mangle table */
-class DscpTarget : TemplateTarget<xt_dscp_target>{
+class DscpTarget : public TemplateTarget<xt_dscp_target>{
   public:
   /* Constructors */
   DscpTarget();
@@ -241,7 +271,7 @@ class DscpTarget : TemplateTarget<xt_dscp_target>{
 };
 
 // Valid only in mangle table
-class TosTarget : TemplateTarget<xt_tos_target>{
+class TosTarget : public TemplateTarget<xt_tos_target>{
   public:
   /* Constructors */
   TosTarget();
@@ -262,7 +292,7 @@ class TosTarget : TemplateTarget<xt_tos_target>{
  * Sets fwmark with a mark calculated for hashing packet selector at choice
  * Valid in PREROUTING and OUTPUT of mangle table
  */
-class HmarkTarget : TemplateTarget<xt_hmark_target>{
+class HmarkTarget : public TemplateTarget<xt_hmark_target>{
   public:
   /* Constructor */
   HmarkTarget();
@@ -296,7 +326,7 @@ class HmarkTarget : TemplateTarget<xt_hmark_target>{
  * Timers are created when a new label is added. When time expires a sysfs notifcation is sent to
  * the userspace.
  */
-class IdletimerTarget : TemplateTarget<xt_idletimer_target>{
+class IdletimerTarget : public TemplateTarget<xt_idletimer_target>{
   public:
   /* Constructors */
   IdletimerTarget();
@@ -316,7 +346,7 @@ class IdletimerTarget : TemplateTarget<xt_idletimer_target>{
  * Creates an LED trigger that can be attached to system indicator lights. This can be used to blink
  * when ever a certain connection is made.
  */
-class LedTarget : TemplateTarget<xt_led_target>{
+class LedTarget : public TemplateTarget<xt_led_target>{
   public:
   /* Constructors */
   LedTarget();
@@ -342,7 +372,7 @@ class LedTarget : TemplateTarget<xt_led_target>{
  * Used to kernel log matching packets. Log can be read in dmesg of syslog. Non-terminating target
  * rule traversal will continue next rule in chain.
  */
-class LogTarget : TemplateTarget<xt_log_target>{
+class LogTarget : public TemplateTarget<xt_log_target>{
   public:
   /* Constructors */
   LogTarget();
@@ -371,7 +401,7 @@ class LogTarget : TemplateTarget<xt_log_target>{
  * Used to set the nfmark of a packet. Mark should be set in PREROUTING or OUTPUT chain of the
  * mangle table to affect routing
  */
-class MarkTarget : TemplateTarget<xt_mark_target>{
+class MarkTarget : public TemplateTarget<xt_mark_target>{
   public:
   /* Constructors */
   MarkTarget();
@@ -391,7 +421,7 @@ class MarkTarget : TemplateTarget<xt_mark_target>{
  * Provides logging of matching packets. Works like LOG but can be used with a loaded logging
  * backend (usually nfnetlink_log) which can allow userspace processes to recieve the packets.
  */
-class NFLogTarget : TemplateTarget<xt_nflog_target>{
+class NFLogTarget : public TemplateTarget<xt_nflog_target>{
   public:
   /* Constructors */
   NFLogTarget();
@@ -414,7 +444,7 @@ class NFLogTarget : TemplateTarget<xt_nflog_target>{
   virtual string getName() const;
 };
 
-class NFQueueTarget : TemplateTarget<xt_nfqueue_target>{
+class NFQueueTarget : public TemplateTarget<xt_nfqueue_target>{
   public:
   /* Constructors */
   NFQueueTarget();
@@ -441,7 +471,7 @@ class NFQueueTarget : TemplateTarget<xt_nfqueue_target>{
  * Collects statistics and rate estimation calculations and saves results to be used by rateest
  * match
  */
-class RateEstTarget : TemplateTarget<xt_rateest_target>{
+class RateEstTarget : public TemplateTarget<xt_rateest_target>{
   public:
   /* Constructors */
   RateEstTarget();
@@ -463,7 +493,7 @@ class RateEstTarget : TemplateTarget<xt_rateest_target>{
 /** 
  * Used with SELinux, allows for security marks and security context to be set on matching packets
  */
-class SecMarkTarget : TemplateTarget<xt_secmark_target>{
+class SecMarkTarget : public TemplateTarget<xt_secmark_target>{
   public:
   /* Constructors */
   SecMarkTarget();
@@ -484,7 +514,7 @@ class SecMarkTarget : TemplateTarget<xt_secmark_target>{
  * system. Requires connection tracking because sequence numbers need to be tracked. Should not be
  * needed to protect linux servers after Linux 4.4.
  */
-class SynproxyTarget : TemplateTarget<xt_synproxy_target>{
+class SynproxyTarget : public TemplateTarget<xt_synproxy_target>{
   public:
   /* Constructors */
   SynproxyTarget();
@@ -513,7 +543,7 @@ class SynproxyTarget : TemplateTarget<xt_synproxy_target>{
  * Requires matching tcp protocol
  * Default clamps mss to path_MTU - 40/60 (ipv4/ipv6)
  */
-class TcpmssTarget : TemplateTarget<xt_tcpmss_target>{
+class TcpmssTarget : public TemplateTarget<xt_tcpmss_target>{
   public:
   /* Constructors */
   TcpmssTarget();
@@ -530,7 +560,7 @@ class TcpmssTarget : TemplateTarget<xt_tcpmss_target>{
  * Strips designated options from the tcp header.
  * Requires matching to tcp protocol
  */
-class TcpOptStripTarget : TemplateTarget<xt_tcpoptstrip_target>{
+class TcpOptStripTarget : public TemplateTarget<xt_tcpoptstrip_target>{
   public:
   /* Constructors */
   TcpOptStripTarget();
@@ -550,7 +580,7 @@ class TcpOptStripTarget : TemplateTarget<xt_tcpoptstrip_target>{
 /**
  * Clones the matched packet and redirects it to another machine.
  */
-class TeeTarget : TemplateTarget<xt_tee_target>{
+class TeeTarget : public TemplateTarget<xt_tee_target>{
   public:
   /* Constructors */
   TeeTarget();
@@ -568,7 +598,7 @@ class TeeTarget : TemplateTarget<xt_tee_target>{
  * Only valid in the mangle table's PREROUTING chain or user defined chains
  * Only valid if matching tcp or udp protocols
  */
-class TproxyTarget : TemplateTarget<xt_tproxy_target>{
+class TproxyTarget : public TemplateTarget<xt_tproxy_target>{
   public:
   /* Constructors */
   TproxyTarget();
@@ -592,7 +622,7 @@ class TproxyTarget : TemplateTarget<xt_tproxy_target>{
  * Works like DROP but sends back a error packet.
  * Only valid in INPUT, FOWARD, and OUTPUT chains
  */
-class RejectIPTarget : TemplateTarget<ipt_reject_target>{
+class RejectIPTarget : public TemplateTarget<ipt_reject_target>{
   public:
   /* Constructors */
   RejectIPTarget();
@@ -617,7 +647,7 @@ class RejectIPTarget : TemplateTarget<ipt_reject_target>{
  * Never set or increment the TTL of packets leaving you local network!!!
  * Only valid in mangle table
  */
-class TtlTarget : TemplateTarget<ipt_ttl_target>{
+class TtlTarget : public TemplateTarget<ipt_ttl_target>{
   public:
   /* Constructors */
   TtlTarget();
@@ -644,7 +674,7 @@ class TtlTarget : TemplateTarget<ipt_ttl_target>{
  * Never set or increment the HL of packets leaving you local network!!!
  * Only valid in mangle table
  */
-class HlTarget : TemplateTarget<ip6t_hl_target>{
+class HlTarget : public TemplateTarget<ip6t_hl_target>{
   public:
   /* Constructors */
   HlTarget();
@@ -668,7 +698,7 @@ class HlTarget : TemplateTarget<ip6t_hl_target>{
  * Used for Network Prefix Translation for IPv6 packets
  * Only valid in mangle table
  */
-class NptTarget : TemplateTarget<ip6t_npt_target>{
+class NptTarget : public TemplateTarget<ip6t_npt_target>{
   public:
   /* Constructors */
   NptTarget();
@@ -689,7 +719,7 @@ class NptTarget : TemplateTarget<ip6t_npt_target>{
  * Works like DROP but sends back a error packet.
  * Only valid in INPUT, FOWARD, and OUTPUT chains
  */
-class RejectIP6Target : TemplateTarget<ip6t_reject_target>{
+class RejectIP6Target : public TemplateTarget<ip6t_reject_target>{
   public:
   /* Constructors */
   RejectIP6Target();

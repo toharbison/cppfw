@@ -274,6 +274,10 @@ void UdpMatch::setDstPorts(unsigned short first, unsigned short last, bool inv){
     this->specs.invflags |= XT_UDP_INV_DSTPT;
 }
 
+string UdpMatch::getName() const{
+  return "udp";
+}
+
 Icmp4Match::Icmp4Match(){
   this->specs.type = 0;
   memset(this->specs.code, 0, 2);
