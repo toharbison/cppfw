@@ -33,10 +33,11 @@ class Match{
   public:
   /* Returns name of match */
   virtual string getName() const = 0;
+  virtual unsigned int getSize() const = 0;
 };
 
 template<class T>
-class TemplateMatch : Match{
+class TemplateMatch : public Match{
   public:
   /* Returns size of struct */
   unsigned int getSize() const{ return sizeof(T); }
@@ -155,6 +156,7 @@ enum {
 
 
 class TcpMatch : TemplateMatch<xt_tcp_match>{
+  public:
   /* Constructors */
   TcpMatch();
 
@@ -193,7 +195,8 @@ class TcpMatch : TemplateMatch<xt_tcp_match>{
   string getName() const;
 };
 
-class UdpMatch : TemplateMatch<xt_udp_match>{
+class UdpMatch : public TemplateMatch<xt_udp_match>{
+  public:
   /* Constructors */
   UdpMatch();
 

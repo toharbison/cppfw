@@ -35,7 +35,9 @@ void Firewall::addRule(string dstIp, string srcIp, string iFace, string oFace,
   // Align everything
   unsigned int entrySize = XT_ALIGN(sizeof(ipt_entry));
   unsigned int targetSize = XT_ALIGN(sizeof(xt_entry_target) + entryTarget->getSize());
-  unsigned int matchesSize = 0;
+  unsigned int matchesSize = XT_ALIGN(sizeof(xt_entry_match)) * numOfMatches;
+  for(int i = 0; i < numOfMatches; i++)
+    matchesSize += XT_ALIGN(entryMatches->at(i)->getSize());
   unsigned int totalSize = entrySize + targetSize + matchesSize;
   entry = (ipt_entry*)calloc(1, totalSize);
 
@@ -55,30 +57,46 @@ void Firewall::addRule(string dstIp, string srcIp, string iFace, string oFace,
     strncpy(entry->ip.outiface, oFace.c_str(), IFNAMSIZ);
     memset(entry->ip.outiface_mask, 1, (oFace.size() < IFNAMSIZ) ? oFace.size() + 1 : IFNAMSIZ); 
   }
-  if(proto != "")
-    entry->ip.proto = 0; 
+    entry->ip.proto = IPPROTO_UDP; 
   
-  entry->nfcache = 0;
   entry->target_offset = entrySize + matchesSize;
   entry->next_offset = totalSize;
 
+  // Include matches
+  for(int i = 0, size = 0; i < numOfMatches; i++){
+    matches[i] = (xt_entry_match*) (entry->elems + size);
+    strcpy(matches[i]->u.user.name, entryMatches->at(i)->getName().c_str());
+    matches[i]->u.match_size = XT_ALIGN(sizeof(xt_entry_match) + entryMatches->at(i)->getSize());
+    size += matches[i]->u.match_size;
+    if(!strcmp(matches[i]->u.user.name,"udp")){
+      xt_udp_match* match = (xt_udp_match*) matches[i]->data;
+      *match = ((UdpMatch*)entryMatches->at(i))->getSpecs();
+    }
+  }
+
+  //dump_entries(rules);
+
+  // Include target
   target = (xt_entry_target*) (entry->elems + matchesSize);
   target->u.target_size = targetSize;
   strcpy(target->u.user.name, entryTarget->getName().c_str());
-  if(target->u.user.name == "DROP"){
+  if(!strcmp(target->u.user.name, "DROP")){
     int* verdict = (int*)target->data;
-    *verdict = NF_DROP;
+    *verdict = ((DropTarget*)entryTarget)->getSpecs();
   }
 
+  const ipt_entry* cmp = iptc_first_rule(chain.c_str(), rules);
 
-  dump_entries(rules);
-
+  
   if(!iptc_append_entry(chain.c_str(), entry, rules)){
     string e = "Error adding rule\n";
     throw runtime_error(e += iptc_strerror(errno));
   }
 
-  dump_entries(rules);
+
+  if(!iptc_get_target(entry, rules))
+    throw runtime_error(iptc_strerror(errno));
+
 
   if(!iptc_commit(rules)){
     string e = "Error commiting table\n";

@@ -21,6 +21,17 @@ int main(int argc, char** argv){
       std::cerr << "FAIL REMOVE: " << e.what() << "\n";
     }
   }
+  else if(argv[1][1] == 'm'){
+    try{
+      Firewall* fw = new Firewall();
+      Match* match = new UdpMatch();
+      std::vector<Match*>* matches = new std::vector<Match*>(1, match);
+      Target* target = new DropTarget();
+      fw->addRule("","","wlp4s0","","",matches,target,"INPUT");
+    }catch(std::exception &e){
+      std::cerr << "FAIL APPEND MATCH: " << e.what() << "\n";
+    }
+  }
   else
     std::cout << argv[1] << " is not a valid parameter. Please try again.\n";
   return 0;

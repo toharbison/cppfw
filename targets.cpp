@@ -5,7 +5,7 @@
 typedef std::runtime_error runtime_error;
 
 DropTarget::DropTarget(){
-  this->specs = 0;
+  this->specs = -NF_DROP-1;
 }
 
 string DropTarget::getName() const{
