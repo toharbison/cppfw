@@ -31,6 +31,8 @@ void Firewall::addRule(string dstIp, string srcIp, string iFace, string oFace,
   xt_entry_match** matches = new xt_entry_match*[numOfMatches];
   memset(matches, 0, sizeof(xt_entry_match*) * numOfMatches); 
   xt_entry_target* target;
+  xt_entry_match* match;
+  Match* entryMatch;
 
   // Align everything
   unsigned int entrySize = XT_ALIGN(sizeof(ipt_entry));
@@ -64,14 +66,18 @@ void Firewall::addRule(string dstIp, string srcIp, string iFace, string oFace,
 
   // Include matches
   for(int i = 0, size = 0; i < numOfMatches; i++){
-    matches[i] = (xt_entry_match*) (entry->elems + size);
-    strcpy(matches[i]->u.user.name, entryMatches->at(i)->getName().c_str());
-    matches[i]->u.match_size = XT_ALIGN(sizeof(xt_entry_match) + entryMatches->at(i)->getSize());
-    size += matches[i]->u.match_size;
+    match = (xt_entry_match*) (entry->elems + size);
+    entryMatch = entryMatches->at(i);
+    strcpy(match->u.user.name, entryMatch->getName().c_str());
+    match->u.match_size = XT_ALIGN(sizeof(xt_entry_match) + entryMatch->getSize());
+    size += match->u.match_size;
+    /*
     if(!strcmp(matches[i]->u.user.name,"udp")){
       xt_udp_match* match = (xt_udp_match*) matches[i]->data;
       *match = ((UdpMatch*)entryMatches->at(i))->getSpecs();
     }
+    */
+    memcpy(match->data, entryMatch->getSpecs(), entryMatch->getSize());
   }
 
   //dump_entries(rules);
@@ -80,10 +86,13 @@ void Firewall::addRule(string dstIp, string srcIp, string iFace, string oFace,
   target = (xt_entry_target*) (entry->elems + matchesSize);
   target->u.target_size = targetSize;
   strcpy(target->u.user.name, entryTarget->getName().c_str());
+  /*
   if(!strcmp(target->u.user.name, "DROP")){
     int* verdict = (int*)target->data;
     *verdict = ((DropTarget*)entryTarget)->getSpecs();
   }
+  */
+  memcpy(target->data, entryTarget->getSpecs(), entryTarget->getSize());
 
   const ipt_entry* cmp = iptc_first_rule(chain.c_str(), rules);
 

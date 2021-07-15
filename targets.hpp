@@ -57,6 +57,8 @@ class Target {
   virtual string getName() const = 0;
   /* Returns size of target struct */
   virtual unsigned getSize() const = 0;
+  /* Returns pointer to target specifications */
+  virtual const void* getSpecs() const = 0;
 };
 
 template<typename T>
@@ -65,7 +67,7 @@ class TemplateTarget : public Target {
   /* Returns size of target struct */
   unsigned int getSize() const{ return sizeof(T); }
   /* Returns target specs */
-  T getSpecs() const{ return this->specs; }
+  const void*  getSpecs() const{ return &specs; }
   
   protected:
   T specs;

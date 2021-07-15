@@ -33,7 +33,10 @@ class Match{
   public:
   /* Returns name of match */
   virtual string getName() const = 0;
+  /* Returns size of match */
   virtual unsigned int getSize() const = 0;
+  /* Returns pointer to match specifications */
+  virtual const void* getSpecs() const = 0;
 };
 
 template<class T>
@@ -41,8 +44,8 @@ class TemplateMatch : public Match{
   public:
   /* Returns size of struct */
   unsigned int getSize() const{ return sizeof(T); }
-  /* Returns match specifications */
-  T getSpecs() const{ return this->specs; }
+  /* Returns pointer to match specifications */
+  const void* getSpecs() const{ return &specs; }
 
   protected:
   T specs;
