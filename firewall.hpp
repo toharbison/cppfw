@@ -30,6 +30,35 @@ class Firewall{
   void addRule(std::string dstIp, std::string srcIp, std::string iFace, std::string oFace, 
       std::string proto, std::vector<Match*>* matches, Target* target, string chain); 
 
+  /* Adds rule to firewall
+   * "dstIp" is destination ip of packet
+   * "srcIp" is source ip of packet
+   * "iFace" is input interface
+   * "oFace" is output interface
+   * "proto" is protocol of packet
+   * "matches" is a vector of rules to match against packet
+   * "target" is the target of packet
+   * "chain" chain to insert rule into
+   * "num" where in the chain to insert rule
+   */
+  void insertRule(std::string dstIp, std::string srcIp, std::string iFace, std::string oFace, 
+      std::string proto, std::vector<Match*>* matches, Target* target, string chain, int num); 
+
+  /* Adds rule to firewall
+   * "dstIp" is destination ip of packet
+   * "srcIp" is source ip of packet
+   * "iFace" is input interface
+   * "oFace" is output interface
+   * "proto" is protocol of packet
+   * "matches" is a vector of rules to match against packet
+   * "target" is the target of packet
+   * "chain" chain to insert rule into
+   * "num" number of rule to replace in chain
+   */
+  void replaceRule(std::string dstIp, std::string srcIp, std::string iFace, std::string oFace, 
+      std::string proto, std::vector<Match*>* matches, Target* target, string chain, int num); 
+ 
+
   /**
    * Removes the rule of the given number from the given chain.
    * "num" number in chain, 0 being first
