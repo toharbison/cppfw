@@ -8,6 +8,26 @@
 #include "targets.hpp"
 #include "matches.hpp"
 
+class Rule{
+  public:
+  /* Constructors */
+  Rule();
+  Rule(const ipt_entry* entry);
+  Rule(json j);
+  
+  /* Returns rule as ipt_entry* */
+  ipt_entry* asEntry() const;
+  /* Returns rule as json */
+  json asJson() const;
+
+  /* Members */
+  std::string dstIp, srcIp, iFace, oFace;
+  unsigned short proto;
+  std::vector<Match*> entryMatches;
+  Target* entryTarget;
+};
+
+
 
 class Firewall{
   public:
@@ -67,13 +87,19 @@ class Firewall{
    */
   void removeRule(unsigned num, string chain, string table);
 
+  /* Saves to ruleFile */
+  void save();
+
+  /* Loads from ruleFile */
+  void load();
+
   /* Checks logs and returns std::string of recent log messages
    * "lines" number of messages to return
    */
   std::string checkLogs(int lines);
 
   private:
-  
+ 
   xtc_handle* rules;
   std::string ruleFile;
 

@@ -2,9 +2,12 @@
 #define MATCH_H
 
 #include <string>
+#include <nlohmann/json.hpp>
 #include "match_headers.hpp"
 
-typedef std::string string;
+using json = nlohmann::json;
+using string = std::string;
+
 typedef xt_addrtype_info_v1 xt_addrtype_match;
 typedef xt_bpf_info_v1 xt_bpf_match;
 typedef xt_cgroup_info_v2 xt_cgroup_match;
@@ -16,7 +19,7 @@ typedef ipt_icmp ipt_icmp_match;
 typedef ip6t_icmp ip6t_icmp_match;
 
 #if 0
-class Temp2Match : TemplateMatch<xt_temp2_match>{
+class Temp2Match : public TemplateMatch<xt_temp2_match>{
   /* Constructors */
   Temp2Match();
   Temp2Match(args);
@@ -37,11 +40,15 @@ class Match{
   virtual unsigned int getSize() const = 0;
   /* Returns pointer to match specifications */
   virtual const void* getSpecs() const = 0;
+  /* Returns this object in json format */
+  virtual json asJson() const = 0;
 };
 
 template<class T>
 class TemplateMatch : public Match{
   public:
+  /* Constructor */
+  TemplateMatch(const T* s) { memcpy(&specs, s, getSize()); }
   /* Returns size of struct */
   unsigned int getSize() const{ return sizeof(T); }
   /* Returns pointer to match specifications */
@@ -51,11 +58,13 @@ class TemplateMatch : public Match{
   T specs;
 };
 
-class AddrtypeMatch : TemplateMatch<xt_addrtype_match>{
+class AddrtypeMatch : public TemplateMatch<xt_addrtype_match>{
   public:
   /* Constructors */
   AddrtypeMatch();
   AddrtypeMatch(unsigned short src, unsigned short dst);
+  AddrtypeMatch(xt_addrtype_match* s) : TemplateMatch<xt_addrtype_match>(s) {}
+  AddrtypeMatch(json j);
 
   /** 
    * Sets address type of source/destination ip, address types prefixed with "XT_ADDRTYPE_" are:
@@ -75,12 +84,16 @@ class AddrtypeMatch : TemplateMatch<xt_addrtype_match>{
 
   /* Returns name of match */
   string getName() const;
+  /* Returns this object in json format */
+  virtual json asJson() const;
 };
 
-class BpfMatch : TemplateMatch<xt_bpf_match>{
+class BpfMatch : public TemplateMatch<xt_bpf_match>{
   public:
   /* Constructors */
   BpfMatch();
+  BpfMatch(xt_bpf_match* s) : TemplateMatch<xt_bpf_match>(s) {}
+  BpfMatch(json j);
 
   /* Sets program path of BPF object */
   void setPath(string progPath);
@@ -91,17 +104,21 @@ class BpfMatch : TemplateMatch<xt_bpf_match>{
 
   /* Returns name of match */
   string getName() const;
+  /* Returns this object in json format */
+  virtual json asJson() const;
 
   private:
   sock_fprog strToCode(string code) const;
 };
 
-class CgroupMatch : TemplateMatch<xt_cgroup_match>{
+class CgroupMatch : public TemplateMatch<xt_cgroup_match>{
   public:
   /* Constructors */
   CgroupMatch();
   CgroupMatch(string path, bool inv = false);
   CgroupMatch(unsigned int classid, bool inv = false);
+  CgroupMatch(xt_cgroup_match* s) : TemplateMatch<xt_cgroup_match>(s) {}
+  CgroupMatch(json j);
 
   /* Sets path of cgroup2 membership */
   void setPath(string path, bool inv = false);
@@ -110,13 +127,17 @@ class CgroupMatch : TemplateMatch<xt_cgroup_match>{
 
   /* Returns name of match */
   string getName() const;
+  /* Returns this object in json format */
+  virtual json asJson() const;
 };
 
-class ClusterMatch : TemplateMatch<xt_cluster_match>{
+class ClusterMatch : public TemplateMatch<xt_cluster_match>{
   public:
   /* Constuctors */
   ClusterMatch();
   ClusterMatch(unsigned int total, unsigned int nodeMask, unsigned int hashSeed);
+  ClusterMatch(xt_cluster_match* s) : TemplateMatch<xt_cluster_match>(s) {}
+  ClusterMatch(json j);
 
   /* Sets total number of nodes */
   void setNumNodes(unsigned int total);
@@ -130,19 +151,25 @@ class ClusterMatch : TemplateMatch<xt_cluster_match>{
 
   /* Returns name of match */
   string getName() const;
+  /* Returns this object in json format */
+  virtual json asJson() const;
 };
 
-class CommentMatch : TemplateMatch<xt_comment_match>{
+class CommentMatch : public TemplateMatch<xt_comment_match>{
   public:
   /* Constructor */
   CommentMatch();
   CommentMatch(string comment);
+  CommentMatch(xt_comment_match* s) : TemplateMatch<xt_comment_match>(s) {}
+  CommentMatch(json j);
 
   /* Sets comment */
   void setComment(string comment);
 
   /* Returns name of match */
   string getName() const;
+  /* Returns this object in json format */
+  virtual json asJson() const;
 };
 
 // Tcp flags
@@ -158,10 +185,12 @@ enum {
 };
 
 
-class TcpMatch : TemplateMatch<xt_tcp_match>{
+class TcpMatch : public TemplateMatch<xt_tcp_match>{
   public:
   /* Constructors */
   TcpMatch();
+  TcpMatch(xt_tcp_match* s) : TemplateMatch<xt_tcp_match>(s) {}
+  TcpMatch(json j);
 
   /**
    * Sets range of source ports to match
@@ -196,12 +225,16 @@ class TcpMatch : TemplateMatch<xt_tcp_match>{
 
   /* Returns name of match */
   string getName() const;
+  /* Returns this object in json format */
+  virtual json asJson() const;
 };
 
 class UdpMatch : public TemplateMatch<xt_udp_match>{
   public:
   /* Constructors */
   UdpMatch();
+  UdpMatch(xt_udp_match* s) : TemplateMatch<xt_udp_match>(s) {}
+  UdpMatch(json j);
 
   /**
    * Sets range of source ports to match
@@ -221,6 +254,8 @@ class UdpMatch : public TemplateMatch<xt_udp_match>{
 
   /* Returns name of match */
   string getName() const;
+  /* Returns this object in json format */
+  virtual json asJson() const;
 };
 
 // ICMP types
@@ -284,12 +319,15 @@ enum {
   BAD_LEN
 };
 
-class Icmp4Match : TemplateMatch<ipt_icmp_match>{
+class Icmp4Match : public TemplateMatch<ipt_icmp_match>{
+  public:
   /* Constructors */
   Icmp4Match();
   Icmp4Match(Icmp4Type type, bool inv = false);
   Icmp4Match(Icmp4Type type, unsigned char code, bool inv = false);
   Icmp4Match(Icmp4Type type, unsigned char first, unsigned char last, bool inv = false);
+  Icmp4Match(ipt_icmp_match* s) : TemplateMatch<ipt_icmp_match>(s) {}
+  Icmp4Match(json j);
 
   /** 
    * Sets type of icmp packet to match
@@ -311,6 +349,8 @@ class Icmp4Match : TemplateMatch<ipt_icmp_match>{
 
   /* Returns name of match */
   string getName() const;
+  /* Returns this object in json format */
+  virtual json asJson() const;
 };
 
 enum Icmp6Type{
@@ -349,12 +389,15 @@ enum {
   UNR_OPT
 };
 
-class Icmp6Match : TemplateMatch<ip6t_icmp_match>{
+class Icmp6Match : public TemplateMatch<ip6t_icmp_match>{
+  public:
   /* Constructors */
   Icmp6Match();
   Icmp6Match(Icmp6Type type, bool inv = false);
   Icmp6Match(Icmp6Type type, unsigned char code, bool inv = false);
   Icmp6Match(Icmp6Type type, unsigned char first, unsigned char last, bool inv = false);
+  Icmp6Match(ip6t_icmp_match* s) : TemplateMatch<ip6t_icmp_match>(s) {}
+  Icmp6Match(json j);
 
   /** 
    * Sets type of icmp packet to match
@@ -376,6 +419,8 @@ class Icmp6Match : TemplateMatch<ip6t_icmp_match>{
 
   /* Returns name of match */
   string getName() const;
+  /* Returns this object in json format */
+  virtual json asJson() const;
 };
 
 #endif
