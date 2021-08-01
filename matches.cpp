@@ -17,6 +17,12 @@ AddrtypeMatch::AddrtypeMatch(unsigned short src, unsigned short dst){
   this->specs.flags = 0;
 }
 
+AddrtypeMatch::AddrtypeMatch(json j){
+  this->specs.source = j["source"].get<unsigned short>();
+  this->specs.dest = j["dest"].get<unsigned short>();
+  this->specs.flags = j["flags"].get<unsigned>();
+}
+
 void AddrtypeMatch::setSrc(unsigned short src, bool inv){
   if(src < (1 << 12) && src > 0)
     this->specs.source = src;
@@ -47,11 +53,26 @@ string AddrtypeMatch::getName() const{
   return "addrtype";
 }
 
+json AddrtypeMatch::asJson() const{
+  json j;
+  j["source"] = this->specs.source;
+  j["dest"] = this->specs.dest;
+  j["flags"] = this->specs.flags;
+  return j;
+}
+
 BpfMatch::BpfMatch(){
   this->specs.mode = 0;
   this->specs.bpf_program_num_elem = 0;
   this->specs.fd = 0;
   memset(this->specs.path, 0, XT_BPF_PATH_MAX);
+}
+
+BpfMatch::BpfMatch(json j){
+  this->specs.mode = j["mode"].get<unsigned short>();
+  this->specs.bpf_program_num_elem = j["bpf_program_num_elem"].get<unsigned short>();
+  this->specs.fd = j["fd"].get<int>();
+  strcpy(this->specs.path, j["path"].get<string>().c_str());
 }
 
 void BpfMatch::setPath(string progPath){
@@ -74,6 +95,16 @@ void BpfMatch::setProg(string code){
   this->specs.bpf_program_num_elem = prog.len;
   memcpy(this->specs.bpf_program, prog.filter, prog.len * sizeof(sock_filter));
 }
+
+json BpfMatch::asJson() const{
+  json j;
+  j["mode"] = this->specs.mode;
+  j["bpf_program_num_elem"] = this->specs.bpf_program_num_elem;
+  j["fd"] = this->specs.fd;
+  j["path"] = string(this->specs.path);
+  return j;
+}
+
 
 string BpfMatch::getName() const{
   return "bpf";
@@ -108,12 +139,30 @@ CgroupMatch::CgroupMatch(){
   memset(this->specs.path, 0, XT_CGROUP_PATH_MAX);
 }
 
+CgroupMatch::CgroupMatch(json j){
+  this->specs.has_path = j["has_path"].get<bool>();
+  this->specs.has_classid = j["has_classid"].get<bool>();
+  this->specs.invert_path = j["invert_path"].get<bool>();
+  this->specs.invert_classid = j["invert_classid"].get<bool>();
+  strcpy(this->specs.path, j["path"].get<string>().c_str());
+}
+
 CgroupMatch::CgroupMatch(string path, bool inv){
   setPath(path, inv);
 }
 
 CgroupMatch::CgroupMatch(unsigned classid, bool inv){
   setClassId(classid, inv);
+}
+
+json CgroupMatch::asJson() const{
+  json j;
+  j["has_path"] = this->specs.has_path;
+  j["has_classid"] = this->specs.has_classid;
+  j["invert_path"] = this->specs.invert_path;
+  j["invert_classid"] = this->specs.invert_classid;
+  j["path"] = string(this->specs.path);
+  return j;
 }
 
 void CgroupMatch::setPath(string path, bool inv){
@@ -150,6 +199,22 @@ ClusterMatch::ClusterMatch(unsigned total, unsigned nodeMask, unsigned hashSeed)
   this->specs.flags = 0;
 }
 
+ClusterMatch::ClusterMatch(json j){
+  this->specs.total_nodes = j["total_nodes"].get<unsigned>();
+  this->specs.node_mask = j["node_mask"].get<unsigned>();
+  this->specs.hash_seed = j["hash_seed"].get<unsigned>();
+  this->specs.flags = j["flags"].get<unsigned>();
+}
+
+json ClusterMatch::asJson() const{
+  json j;
+  j["total_nodes"] = this->specs.total_nodes;
+  j["node_mask"] = this->specs.node_mask;
+  j["hash_seed"] = this->specs.hash_seed;
+  j["flags"] = this->specs.flags;
+  return j;
+}
+
 void ClusterMatch::setNumNodes(unsigned total){
   this->specs.total_nodes = total;
 }
@@ -178,8 +243,18 @@ CommentMatch::CommentMatch(string comment){
   setComment(comment);
 }
 
+CommentMatch::CommentMatch(json j){
+  strcpy(this->specs.comment, j["comment"].get<string>().c_str());
+}
+
 void CommentMatch::setComment(string comment){
   strncpy(this->specs.comment, comment.c_str(), XT_MAX_COMMENT_LEN);
+}
+
+json CommentMatch::asJson() const{
+  json j;
+  j["comment"] = string(this->specs.comment);
+  return j;
 }
 
 string CommentMatch::getName() const{
@@ -195,6 +270,17 @@ TcpMatch::TcpMatch(){
   this->specs.flg_mask = 0;
   this->specs.flg_cmp = 0;
   this->specs.invflags = 0;
+}
+
+TcpMatch::TcpMatch(json j){
+  this->specs.spts[0] = j["spts"][0].get<unsigned short>();
+  this->specs.spts[1] = j["spts"][1].get<unsigned short>();
+  this->specs.dpts[0] = j["dpts"][0].get<unsigned short>();
+  this->specs.dpts[1] = j["dpts"][1].get<unsigned short>();
+  this->specs.invflags = j["invflags"].get<unsigned char>();
+  this->specs.option = j["option"].get<unsigned char>();
+  this->specs.flg_mask = j["flg_mask"].get<unsigned char>();
+  this->specs.flg_cmp = j["flg_cmp"].get<unsigned char>();
 }
 
 void TcpMatch::setSrcPorts(unsigned short first, unsigned short last, bool inv){
@@ -242,12 +328,33 @@ string TcpMatch::getName() const{
   return "tcp";
 }
 
+json TcpMatch::asJson() const{
+  json j;
+  j["option"] = this->specs.option;
+  j["flg_mask"] = this->specs.flg_mask;
+  j["flg_cmp"] = this->specs.flg_cmp;
+  j["invflags"] = this->specs.invflags;
+  j["spts"][0] = this->specs.spts[0];
+  j["spts"][1] = this->specs.spts[1];
+  j["dpts"][0] = this->specs.dpts[0];
+  j["dpts"][1] = this->specs.dpts[1];
+  return j;
+}
+
 UdpMatch::UdpMatch(){
   setSrcPorts(0, 0xffff);
   setDstPorts(0, 0xffff);
   this->specs.invflags = 0;
 }
 
+UdpMatch::UdpMatch(json j){
+  this->specs.spts[0] = j["spts"][0].get<unsigned short>();
+  this->specs.spts[1] = j["spts"][1].get<unsigned short>();
+  this->specs.dpts[0] = j["dpts"][0].get<unsigned short>();
+  this->specs.dpts[1] = j["dpts"][1].get<unsigned short>();
+  this->specs.invflags = j["invflags"].get<unsigned char>();
+}
+ 
 void UdpMatch::setSrcPorts(unsigned short first, unsigned short last, bool inv){
   if(first <= last){
     this->specs.spts[0] = first;
@@ -278,6 +385,17 @@ string UdpMatch::getName() const{
   return "udp";
 }
 
+json UdpMatch::asJson() const{
+  json j;
+  j["invflags"] = this->specs.invflags;
+  j["spts"][0] = this->specs.spts[0];
+  j["spts"][1] = this->specs.spts[1];
+  j["dpts"][0] = this->specs.dpts[0];
+  j["dpts"][1] = this->specs.dpts[1];
+  return j;
+}
+
+
 Icmp4Match::Icmp4Match(){
   this->specs.type = 0;
   memset(this->specs.code, 0, 2);
@@ -302,6 +420,12 @@ Icmp4Match::Icmp4Match(Icmp4Type type, unsigned char first, unsigned char last, 
   setTypeCode(type, first, last, inv);
 }
 
+Icmp4Match::Icmp4Match(json j){
+  this->specs.code[0] = j["code"][0].get<unsigned char>();
+  this->specs.code[1] = j["code"][0].get<unsigned char>();
+  this->specs.invflags = j["invflags"].get<unsigned char>();
+  this->specs.type = j["type"].get<unsigned char>();
+}
 
 void Icmp4Match::setType(Icmp4Type type, bool inv){
   this->specs.type = type;
@@ -433,6 +557,15 @@ string Icmp4Match::getName() const{
   return "icmp";
 }
 
+json Icmp4Match::asJson() const{
+  json j;
+  j["type"] = this->specs.type;
+  j["invflags"] = this->specs.invflags;
+  j["code"][0] = this->specs.code[0];
+  j["code"][1] = this->specs.code[1];
+  return j;
+}
+
 Icmp6Match::Icmp6Match(){
   this->specs.type = 0;
   memset(this->specs.code, 0, 2);
@@ -455,6 +588,13 @@ Icmp6Match::Icmp6Match(Icmp6Type type, unsigned char first, unsigned char last, 
   memset(this->specs.code, 0, 2);
   this->specs.invflags = 0;
   setTypeCode(type, first, last, inv);
+}
+
+Icmp6Match::Icmp6Match(json j){
+  this->specs.code[0] = j["code"][0].get<unsigned char>();
+  this->specs.code[1] = j["code"][0].get<unsigned char>();
+  this->specs.invflags = j["invflags"].get<unsigned char>();
+  this->specs.type = j["type"].get<unsigned char>();
 }
 
 void Icmp6Match::setType(Icmp6Type type, bool inv){
@@ -561,4 +701,13 @@ void Icmp6Match::setTypeCode(Icmp6Type type, unsigned char first, unsigned char 
 
 string Icmp6Match::getName() const{
   return "icmp6";
+}
+
+json Icmp6Match::asJson() const{
+  json j;
+  j["type"] = this->specs.type;
+  j["invflags"] = this->specs.invflags;
+  j["code"][0] = this->specs.code[0];
+  j["code"][1] = this->specs.code[1];
+  return j;
 }

@@ -48,6 +48,7 @@ template<class T>
 class TemplateMatch : public Match{
   public:
   /* Constructor */
+  TemplateMatch(){}
   TemplateMatch(const T* s) { memcpy(&specs, s, getSize()); }
   /* Returns size of struct */
   unsigned int getSize() const{ return sizeof(T); }
