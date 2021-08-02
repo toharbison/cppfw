@@ -4,7 +4,10 @@
 #include <string>
 #include "target_headers.hpp"
 #include "strToIp.hpp"
-typedef std::string string;
+
+using json = nlohmann::json;
+using string = std::string;
+
 typedef xt_audit_info xt_audit_target;
 typedef xt_CHECKSUM_info xt_checksum_target;
 typedef xt_classify_target_info xt_classify_target;
@@ -59,11 +62,16 @@ class Target {
   virtual unsigned getSize() const = 0;
   /* Returns pointer to target specifications */
   virtual const void* getSpecs() const = 0;
+  /* Returns this object as a json object */
+  virtual json asJson() const = 0;
 };
 
 template<typename T>
 class TemplateTarget : public Target {
   public:
+  /* Constructors */
+  TemplateTarget(){}
+  Template(const T* s){ memcpy(&specs, s, getSize()); }
   /* Returns size of target struct */
   unsigned int getSize() const{ return sizeof(T); }
   /* Returns target specs */
@@ -80,6 +88,8 @@ class DropTarget : public TemplateTarget<int>{
 
   /* Returns name of target */
   string getName() const;
+  /* Returns this object as a json object */
+  virtual json asJson() const;
 };
 
 
@@ -90,6 +100,8 @@ class AcceptTarget : public TemplateTarget<int>{
 
   /* Returns name of target */
   string getName() const;
+  /* Returns this object as a json object */
+  virtual json asJson() const;
 };
 
 class ReturnTarget : public TemplateTarget<int>{
@@ -99,6 +111,8 @@ class ReturnTarget : public TemplateTarget<int>{
 
   /* Returns name of target */
   string getName() const;
+  /* Returns this object as a json object */
+  virtual json asJson() const;
 };
 
 class AuditTarget : public TemplateTarget<xt_audit_target>{
@@ -106,6 +120,8 @@ class AuditTarget : public TemplateTarget<xt_audit_target>{
   /* Constuctors */
   AuditTarget();
   AuditTarget(unsigned char type);
+  AuditTarget(const xt_audit_target* s) : TemplateTarget<xt_audit_target>(s){}
+  AuditTarget(json j);
 
   /**
    * Sets the type of audit record. Depracated and has no effect on messages since linux-4.12
@@ -115,6 +131,8 @@ class AuditTarget : public TemplateTarget<xt_audit_target>{
 
   /* Returns name of target */
   virtual string getName() const;
+  /* Returns this object as a json object */
+  virtual json asJson() const;
 };
 
 /* Used only in mangle table */
@@ -123,6 +141,8 @@ class ChecksumTarget : public TemplateTarget<xt_checksum_target>{
   /* Constructors */
   ChecksumTarget();
   ChecksumTarget(bool op);
+  ChecksumTarget(const xt_checksum_target* s) : TemplateTarget<xt_checksum_target>(s){}
+  ChecksumTarget(json j);
 
   /** Sets whether to fill checksum in packet
    * "op" true to fill, false to not
@@ -131,6 +151,8 @@ class ChecksumTarget : public TemplateTarget<xt_checksum_target>{
 
   /* Returns name of target */
   virtual string getName() const;
+  /* Returns this object as a json object */
+  virtual json asJson() const;
 };
 
 class ClassifyTarget : public TemplateTarget<xt_classify_target>{
@@ -138,6 +160,8 @@ class ClassifyTarget : public TemplateTarget<xt_classify_target>{
   /* Constuctors */
   ClassifyTarget();
   ClassifyTarget(unsigned int major, unsigned int minor);
+  ClassifyTarget(const xt_classify_target* s) : TemplateTarget<xt_classify_target>(s){}
+  ClassifyTarget(json j);
 
   /**
    * Sets the major and minor class values of the CBQ class
@@ -148,6 +172,8 @@ class ClassifyTarget : public TemplateTarget<xt_classify_target>{
 
   /* Returns name of target */
   virtual string getName() const;
+  /* Returns this object as a json object */
+  virtual json asJson() const;
 };
 
 class ConnmarkTarget : public TemplateTarget<xt_connmark_target>{
@@ -155,6 +181,8 @@ class ConnmarkTarget : public TemplateTarget<xt_connmark_target>{
   /* Constructors */
   ConnmarkTarget();
   ConnmarkTarget(unsigned char mode, unsigned int ctmark, unsigned int ctmask, unsigned int nfmask);
+  ConnmarkTarget(const xt_connmark_target* s) : TemplateTarget<xt_connmark_target>(s){}
+  ConnmarkTarget(json j);
 
   /**
    * Zeros bit give by mask and XOR ctmark with value
@@ -182,6 +210,8 @@ class ConnmarkTarget : public TemplateTarget<xt_connmark_target>{
 
   /* Returns name of target */
   virtual string getName() const;
+  /* Returns this object as a json object */
+  virtual json asJson() const;
 };
 
 /* Valid in security table (and mangle table for older kernels) */
@@ -190,6 +220,8 @@ class ConnsecmarkTarget : public TemplateTarget<xt_connsecmark_target>{
   /* Constructors */
   ConnsecmarkTarget();
   ConnsecmarkTarget(unsigned char mode);
+  ConnsecmarkTarget(const xt_connsecmark_target* s) : TemplateTarget<xt_connsecmark_target>(s){}
+  ConnsecmarkTarget(json j);
 
   /**
    * Sets the mode of the target
@@ -203,6 +235,8 @@ class ConnsecmarkTarget : public TemplateTarget<xt_connsecmark_target>{
 
   /* Returns name of target */
   virtual string getName() const;
+  /* Returns this object as a json object */
+  virtual json asJson() const;
 };
 
 /* Only valid in raw table */
@@ -212,6 +246,8 @@ class CTTarget : public TemplateTarget<xt_ct_target>{
   CTTarget();
   CTTarget(bool noTrack, string helper, string timeout, unsigned int ctEvents, unsigned int expEvents, 
       unsigned char flags, unsigned int zone);
+  CTTarget(const xt_ct_target* s) : TemplateTarget<xt_ct_target>(s){}
+  CTTarget(json j);
 
   /* Disables tracking on this packet */
   void setNoTrack();
@@ -253,6 +289,8 @@ class CTTarget : public TemplateTarget<xt_ct_target>{
 
   /* Returns name of target */
   virtual string getName() const;
+  /* Returns this object as a json object */
+  virtual json asJson() const;
 };
 
 /* Only valid in mangle table */
@@ -261,6 +299,8 @@ class DscpTarget : public TemplateTarget<xt_dscp_target>{
   /* Constructors */
   DscpTarget();
   DscpTarget(unsigned char value);
+  DscpTarget(const xt_dscp_target* s) : TemplateTarget<xt_dscp_target>(s){}
+  DscpTarget(json j);
 
   /**
    * Sets DSCP field to replace the filed in the TOS header of the IPv4 packet
@@ -270,6 +310,8 @@ class DscpTarget : public TemplateTarget<xt_dscp_target>{
 
   /* Returns name of target */
   virtual string getName() const;
+  /* Returns this object as a json object */
+  virtual json asJson() const;
 };
 
 // Valid only in mangle table
@@ -278,6 +320,8 @@ class TosTarget : public TemplateTarget<xt_tos_target>{
   /* Constructors */
   TosTarget();
   TosTarget(unsigned char value, unsigned char mask);
+  TosTarget(const xt_ct_target* s) : TemplateTarget<xt_ct_target>(s){}
+  TosTarget(json j);
 
   /**
    * Zeroes out bits give by "mask" and XORs "value" into TOS/Priority field of the packet
@@ -288,6 +332,8 @@ class TosTarget : public TemplateTarget<xt_tos_target>{
 
   /* Returns name of target */
   virtual string getName() const;
+  /* Returns this object as a json object */
+  virtual json asJson() const;
 };
 
 /**
@@ -298,6 +344,8 @@ class HmarkTarget : public TemplateTarget<xt_hmark_target>{
   public:
   /* Constructor */
   HmarkTarget();
+  HmarkTarget(const xt_hmark_target* s) : TemplateTarget<xt_hmark_target>(s){}
+  HmarkTarget(json j);
 
   /* Sets the source and/or destination address mask */
   void setSrc(string mask);
@@ -321,6 +369,8 @@ class HmarkTarget : public TemplateTarget<xt_hmark_target>{
 
   /* Returns name of target */
   virtual string getName() const;
+  /* Returns this object as a json object */
+  virtual json asJson() const;
 };
 
 /**
@@ -333,6 +383,8 @@ class IdletimerTarget : public TemplateTarget<xt_idletimer_target>{
   /* Constructors */
   IdletimerTarget();
   IdletimerTarget(string label, unsigned int timeout);
+  IdletimerTarget(const xt_idletimer_target* s) : TemplateTarget<xt_idletimer_target>(s){}
+  IdletimerTarget(json j);
 
   /* Sets the label of the timer. Maximum length is 27 characters */
   void setLabel(string label);
@@ -342,6 +394,8 @@ class IdletimerTarget : public TemplateTarget<xt_idletimer_target>{
 
   /* Returns name of target */
   virtual string getName() const;
+  /* Returns this object as a json object */
+  virtual json asJson() const;
 };
 
 /**
@@ -353,6 +407,8 @@ class LedTarget : public TemplateTarget<xt_led_target>{
   /* Constructors */
   LedTarget();
   LedTarget(string name, unsigned int delay, bool alwaysBlink);
+  LedTarget(const xt_led_target* s) : TemplateTarget<xt_led_target>(s){}
+  LedTarget(json j);
 
   /** 
    * Sets the name of the trigger. Actual name will be  prefixed with "netfilter-". Limit of 26
@@ -368,6 +424,8 @@ class LedTarget : public TemplateTarget<xt_led_target>{
 
   /* Returns name of target */
   virtual string getName() const;
+  /* Returns this object as a json object */
+  virtual json asJson() const;
 };
 
 /**
@@ -379,6 +437,8 @@ class LogTarget : public TemplateTarget<xt_log_target>{
   /* Constructors */
   LogTarget();
   LogTarget(string prefix, unsigned char level, unsigned char flags);
+  LogTarget(const xt_ct_target* s) : TemplateTarget<xt_ct_target>(s){}
+  LogTarget(json j);
 
   /* Sets prefix of log message. Limit of 30 characters */
   void setPrefix(string prefix);
@@ -397,6 +457,8 @@ class LogTarget : public TemplateTarget<xt_log_target>{
 
   /* Returns name of target */
   virtual string getName() const;
+  /* Returns this object as a json object */
+  virtual json asJson() const;
 };
 
 /**
@@ -408,6 +470,8 @@ class MarkTarget : public TemplateTarget<xt_mark_target>{
   /* Constructors */
   MarkTarget();
   MarkTarget(unsigned int mark, unsigned int mask);
+  MarkTarget(const xt_mark_target* s) : TemplateTarget<xt_mark_target>(s){}
+  MarkTarget(json j);
 
   /* Set the mark to be XORed onto nfmark of packet */
   void setMark(unsigned int mark);
@@ -417,6 +481,8 @@ class MarkTarget : public TemplateTarget<xt_mark_target>{
 
   /* Returns name of target */
   virtual string getName() const;
+  /* Returns this object as a json object */
+  virtual json asJson() const;
 };
 
 /**
@@ -428,6 +494,8 @@ class NFLogTarget : public TemplateTarget<xt_nflog_target>{
   /* Constructors */
   NFLogTarget();
   NFLogTarget(string prefix, unsigned int group, unsigned int threshold);
+  NFLogTarget(const xt_nflog_target* s) : TemplateTarget<xt_nflog_target>(s){}
+  NFLogTarget(json j);
 
   /* Sets prefix to log message. Limit of 64 characters */
   void setPrefix(string prefix);
@@ -444,6 +512,8 @@ class NFLogTarget : public TemplateTarget<xt_nflog_target>{
 
   /* Returns name of target */
   virtual string getName() const;
+  /* Returns this object as a json object */
+  virtual json asJson() const;
 };
 
 class NFQueueTarget : public TemplateTarget<xt_nfqueue_target>{
@@ -452,6 +522,8 @@ class NFQueueTarget : public TemplateTarget<xt_nfqueue_target>{
   NFQueueTarget();
   NFQueueTarget(unsigned int num);
   NFQueueTarget(unsigned int first, unsigned int last);
+  NFQueueTarget(const xt_nfqueue_target* s) : TemplateTarget<xt_nfqueue_target>(s){}
+  NFQueueTarget(json j);
 
   /* Set the queue number to use */
   void setNum(unsigned int num);
@@ -467,6 +539,8 @@ class NFQueueTarget : public TemplateTarget<xt_nfqueue_target>{
 
   /* Returns name of target */
   virtual string getName() const;
+  /* Returns this object as a json object */
+  virtual json asJson() const;
 };
 
 /**
@@ -478,6 +552,8 @@ class RateEstTarget : public TemplateTarget<xt_rateest_target>{
   /* Constructors */
   RateEstTarget();
   RateEstTarget(string name, char interval, unsigned char ewmalog);
+  RateEstTarget(const xt_rateest_target* s) : TemplateTarget<xt_rateest_target>(s){}
+  RateEstTarget(json j);
 
   /* Set the name of the pool matched packets are counted */
   void setName(string name);
@@ -490,6 +566,8 @@ class RateEstTarget : public TemplateTarget<xt_rateest_target>{
 
   /* Returns name of target */
   virtual string getName() const;
+  /* Returns this object as a json object */
+  virtual json asJson() const;
 };
 
 /** 
@@ -500,6 +578,8 @@ class SecMarkTarget : public TemplateTarget<xt_secmark_target>{
   /* Constructors */
   SecMarkTarget();
   SecMarkTarget(unsigned int secid, string context);
+  SecMarkTarget(const xt_secmark_target* s) : TemplateTarget<xt_secmark_target>(s){}
+  SecMarkTarget(json j);
 
   /* Set the security mark or secid of the packet */
   void setSecID(unsigned int secid);
@@ -509,6 +589,8 @@ class SecMarkTarget : public TemplateTarget<xt_secmark_target>{
 
   /* Returns name of target */
   virtual string getName() const;
+  /* Returns this object as a json object */
+  virtual json asJson() const;
 };
 
 /**
@@ -521,6 +603,8 @@ class SynproxyTarget : public TemplateTarget<xt_synproxy_target>{
   /* Constructors */
   SynproxyTarget();
   SynproxyTarget(unsigned short mss, unsigned char wscale);
+  SynproxyTarget(const xt_synproxy_target* s) : TemplateTarget<xt_synproxy_target>(s){}
+  SynproxyTarget(json j);
 
   /* Sets maximum segment size announced to clients. Must match backend */
   void setMss(unsigned short mss);
@@ -536,6 +620,8 @@ class SynproxyTarget : public TemplateTarget<xt_synproxy_target>{
 
   /* Returns name of target */
   virtual string getName() const;
+  /* Returns this object as a json object */
+  virtual json asJson() const;
 };
 
 /**
@@ -550,12 +636,16 @@ class TcpmssTarget : public TemplateTarget<xt_tcpmss_target>{
   /* Constructors */
   TcpmssTarget();
   TcpmssTarget(unsigned short mss);
+  TcpmssTarget(const xt_tcpmss_target* s) : TemplateTarget<xt_tcpmss_target>(s){}
+  TcpmssTarget(json j);
 
   /* Sets MSS option to a specific value */
   void setMss(unsigned short mss);
 
   /* Returns name of target */
   virtual string getName() const;
+  /* Returns this object as a json object */
+  virtual json asJson() const;
 };
 
 /**
@@ -567,6 +657,8 @@ class TcpOptStripTarget : public TemplateTarget<xt_tcpoptstrip_target>{
   /* Constructors */
   TcpOptStripTarget();
   TcpOptStripTarget(unsigned int* options, int size);
+  TcpOptStripTarget(const xt_tcpoptstrip_target* s) : TemplateTarget<xt_tcpoptstrip_target>(s){}
+  TcpOptStripTarget(json j);
 
   /**
    * Set what options should be stripped from matched packets
@@ -577,6 +669,8 @@ class TcpOptStripTarget : public TemplateTarget<xt_tcpoptstrip_target>{
 
   /* Returns name of target */
   virtual string getName() const;
+  /* Returns this object as a json object */
+  virtual json asJson() const;
 };
 
 /**
@@ -587,12 +681,16 @@ class TeeTarget : public TemplateTarget<xt_tee_target>{
   /* Constructors */
   TeeTarget();
   TeeTarget(string ip);
+  TeeTarget(const xt_tee_target* s) : TemplateTarget<xt_tee_target>(s){}
+  TeeTarget(json j);
 
   /* Set the ip address to send the packet */
   void setIp(string ip);
 
   /* Returns name of target */
   virtual string getName() const;
+  /* Returns this object as a json object */
+  virtual json asJson() const;
 };
 
 /**
@@ -606,6 +704,8 @@ class TproxyTarget : public TemplateTarget<xt_tproxy_target>{
   TproxyTarget();
   TproxyTarget(unsigned short port);
   TproxyTarget(unsigned short port, string ip);
+  TproxyTarget(const xt_tproxy_target* s) : TemplateTarget<xt_tproxy_target>(s){}
+  TproxyTarget(json j);
 
   /* Sets destination port. 0 means desination port stays the same */
   void setPort(unsigned short port);
@@ -618,6 +718,8 @@ class TproxyTarget : public TemplateTarget<xt_tproxy_target>{
 
   /* Returns name of target */
   virtual string getName() const;
+  /* Returns this object as a json object */
+  virtual json asJson() const;
 };
 
 /**
@@ -629,6 +731,8 @@ class RejectIPTarget : public TemplateTarget<ipt_reject_target>{
   /* Constructors */
   RejectIPTarget();
   RejectIPTarget(ipt_reject_with type);
+  RejectIPTarget(const ipt_reject_target* s) : TemplateTarget<ipt_reject_target>(s){}
+  RejectIPTarget(json j);
 
   /**
    * Sets what error message will send. Types prefixed with "IPT_ICMP_" are
@@ -640,6 +744,8 @@ class RejectIPTarget : public TemplateTarget<ipt_reject_target>{
 
   /* Returns name of target */
   virtual string getName() const;
+  /* Returns this object as a json object */
+  virtual json asJson() const;
 };
 
 /**
@@ -654,6 +760,8 @@ class TtlTarget : public TemplateTarget<ipt_ttl_target>{
   /* Constructors */
   TtlTarget();
   TtlTarget(unsigned char value, unsigned char mode);
+  TtlTarget(const ipt_ttl_target* s) : TemplateTarget<ipt_ttl_target>(s){}
+  TtlTarget(json j);
 
   /**
    * Sets how to edit the TTL field
@@ -667,6 +775,8 @@ class TtlTarget : public TemplateTarget<ipt_ttl_target>{
 
   /* Returns name of target */
   virtual string getName() const;
+  /* Returns this object as a json object */
+  virtual json asJson() const;
 };
 
 /**
@@ -681,6 +791,8 @@ class HlTarget : public TemplateTarget<ip6t_hl_target>{
   /* Constructors */
   HlTarget();
   HlTarget(unsigned char value, unsigned char mode);
+  HlTarget(const ip6t_hl_target* s) : TemplateTarget<ip6t_hl_target>(s){}
+  HlTarget(json j);
 
   /**
    * Sets how to edit the HL field
@@ -694,6 +806,8 @@ class HlTarget : public TemplateTarget<ip6t_hl_target>{
 
   /* Returns name of target */
   virtual string getName() const;
+  /* Returns this object as a json object */
+  virtual json asJson() const;
 };
 
 /**
@@ -705,6 +819,8 @@ class NptTarget : public TemplateTarget<ip6t_npt_target>{
   /* Constructors */
   NptTarget();
   NptTarget(string src, string dst, unsigned char srcLen, unsigned char dstLen);
+  NptTarget(const ip6t_npt_target* s) : TemplateTarget<ip6t_npt_target>(s){}
+  NptTarget(json j);
 
   /**
    * Define how the translation will work
@@ -715,6 +831,8 @@ class NptTarget : public TemplateTarget<ip6t_npt_target>{
 
   /* Returns name of target */
   virtual string getName() const;
+  /* Returns this object as a json object */
+  virtual json asJson() const;
 };
 
 /**
@@ -726,6 +844,8 @@ class RejectIP6Target : public TemplateTarget<ip6t_reject_target>{
   /* Constructors */
   RejectIP6Target();
   RejectIP6Target(ip6t_reject_with type);
+  RejectIP6Target(const ip6t_reject_target* s) : TemplateTarget<ip6t_reject_target>(s){}
+  RejectIP6Target(json j);
 
   /**
    * Sets what error message will send. Types prefixed with "IP6T_ICMP6_" are
@@ -737,6 +857,8 @@ class RejectIP6Target : public TemplateTarget<ip6t_reject_target>{
 
   /* Returns name of target */
   virtual string getName() const;
+  /* Returns this object as a json object */
+  virtual json asJson() const;
 };
 
 #endif
