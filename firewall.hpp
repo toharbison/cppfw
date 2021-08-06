@@ -14,6 +14,7 @@ class Rule{
   Rule();
   Rule(const ipt_entry* entry);
   Rule(json j);
+  Rule(string dst, string src, string in, string out, unsigned short proto, std::vector<Match*> matches, Target* target);
   
   /* Returns rule as ipt_entry* */
   ipt_entry* asEntry() const;
@@ -34,6 +35,7 @@ class Firewall{
 
   // Constructor
   Firewall();
+  Firewall(string ruleFile);
 
   // Deconstructor
   ~Firewall();
@@ -48,7 +50,8 @@ class Firewall{
    * "target" is the target of packet
    */
   void addRule(std::string dstIp, std::string srcIp, std::string iFace, std::string oFace, 
-      std::string proto, std::vector<Match*>* matches, Target* target, string chain); 
+      unsigned short proto, std::vector<Match*>* matches, Target* target, string chain); 
+  void addRule(Rule* rule, string chain);
 
   /* Adds rule to firewall
    * "dstIp" is destination ip of packet
@@ -63,6 +66,7 @@ class Firewall{
    */
   void insertRule(std::string dstIp, std::string srcIp, std::string iFace, std::string oFace, 
       std::string proto, std::vector<Match*>* matches, Target* target, string chain, int num); 
+  void insertRule(Rule* rule, string chain, int num);
 
   /* Adds rule to firewall
    * "dstIp" is destination ip of packet
@@ -77,6 +81,7 @@ class Firewall{
    */
   void replaceRule(std::string dstIp, std::string srcIp, std::string iFace, std::string oFace, 
       std::string proto, std::vector<Match*>* matches, Target* target, string chain, int num); 
+  void replaceRule(Rule* rule, string chain, int num);
  
 
   /**

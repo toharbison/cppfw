@@ -50,3 +50,18 @@ nf_inet_addr strToNfAddr(string str){
   }
   return ret;
 }
+
+string ipToStr(in_addr ip){
+  union{
+    unsigned val;
+    unsigned char bytes[4];
+  } be;
+  be.val = ip.s_addr;
+  string ret;
+  for(int i = 3; i >= 0; i--){
+    ret += std::to_string((unsigned)be.bytes[i]);
+    ret += '.';
+  }
+  ret.pop_back();
+  return ret;
+}

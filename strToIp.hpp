@@ -9,4 +9,6 @@ typedef std::string string;
 in_addr strToInAddr(string str);
 
 nf_inet_addr strToNfAddr(string str);
+
+string ipToStr(in_addr);
 #endif

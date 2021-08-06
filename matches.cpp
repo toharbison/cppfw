@@ -72,7 +72,8 @@ BpfMatch::BpfMatch(json j){
   this->specs.mode = j["mode"].get<unsigned short>();
   this->specs.bpf_program_num_elem = j["bpf_program_num_elem"].get<unsigned short>();
   this->specs.fd = j["fd"].get<int>();
-  strcpy(this->specs.path, j["path"].get<string>().c_str());
+  for(int i = 0; i < XT_BPF_PATH_MAX; i++)
+    this->specs.path[i] = j["path"][i].get<unsigned char>();
 }
 
 void BpfMatch::setPath(string progPath){
@@ -101,7 +102,8 @@ json BpfMatch::asJson() const{
   j["mode"] = this->specs.mode;
   j["bpf_program_num_elem"] = this->specs.bpf_program_num_elem;
   j["fd"] = this->specs.fd;
-  j["path"] = string(this->specs.path);
+  for(int i = 0; i < XT_BPF_PATH_MAX; i++)
+    j["path"][i] = this->specs.path[i];
   return j;
 }
 
@@ -144,7 +146,8 @@ CgroupMatch::CgroupMatch(json j){
   this->specs.has_classid = j["has_classid"].get<bool>();
   this->specs.invert_path = j["invert_path"].get<bool>();
   this->specs.invert_classid = j["invert_classid"].get<bool>();
-  strcpy(this->specs.path, j["path"].get<string>().c_str());
+  for(int i = 0; i < XT_CGROUP_PATH_MAX; i++)
+    this->specs.path[i] = j["path"][i].get<char>();
 }
 
 CgroupMatch::CgroupMatch(string path, bool inv){
@@ -157,11 +160,12 @@ CgroupMatch::CgroupMatch(unsigned classid, bool inv){
 
 json CgroupMatch::asJson() const{
   json j;
-  j["has_path"] = this->specs.has_path;
-  j["has_classid"] = this->specs.has_classid;
-  j["invert_path"] = this->specs.invert_path;
-  j["invert_classid"] = this->specs.invert_classid;
-  j["path"] = string(this->specs.path);
+  j["has_path"] = (bool)this->specs.has_path;
+  j["has_classid"] = (bool)this->specs.has_classid;
+  j["invert_path"] = (bool)this->specs.invert_path;
+  j["invert_classid"] = (bool)this->specs.invert_classid;
+  for(int i = 0; i < XT_CGROUP_PATH_MAX; i++) 
+    j["path"][i] = this->specs.path[i];
   return j;
 }
 

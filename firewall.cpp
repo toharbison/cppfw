@@ -28,7 +28,7 @@ Rule::Rule(const ipt_entry* entry){
   oFace = entry->ip.outiface;
   proto = entry->ip.proto;
   if(entry->target_offset != sizeof(ipt_entry)){
-    for(int size = 0; size < entry->target_offset;){
+    for(int size = 0; size < entry->target_offset - sizeof(ipt_entry);){
       xt_entry_match* match = (xt_entry_match*)(entry->elems+size);
       size += match->u.match_size;
       string name = match->u.user.name;
@@ -81,10 +81,6 @@ Rule::Rule(const ipt_entry* entry){
   else if(name == "CHECKSUM"){
     xt_checksum_target* checksum = (xt_checksum_target*)target->data;
     entryTarget = new  ChecksumTarget(checksum);
-  }
-  else if(name == "CLASSIFY"){
-    xt_classify_target* classify = (xt_classify_target*)target->data;
-    entryTarget = new  ClassifyTarget(classify);
   }
   else if(name == "CONNMARK"){
     xt_connmark_target* connmark = (xt_connmark_target*)target->data;
@@ -170,7 +166,40 @@ Rule::Rule(const ipt_entry* entry){
     ipt_ttl_target* ttl = (ipt_ttl_target*)target->data;
     entryTarget = new  TtlTarget(ttl);
   }
+  else if(name == "DROP")
+    entryTarget = new DropTarget();
+  else if(name == "ACCEPT")
+    entryTarget = new AcceptTarget();
+  else if(name == "RETURN")
+    entryTarget == new ReturnTarget();
+  else if(name == ""){
+    if(target->u.target_size > XT_ALIGN(sizeof(xt_entry_target))){
+      int verdict = *(int*)target->data;
+      if(verdict == -NF_DROP-1)
+	entryTarget = new DropTarget();
+      else if(verdict == -NF_ACCEPT-1)
+	entryTarget = new AcceptTarget();
+      else if(verdict == XT_RETURN)
+	entryTarget = new ReturnTarget();
+      else
+	throw runtime_error("Unrecognized target");
+    }
+  }
+  else
+    throw runtime_error("Unrecognized target");
 }
+
+Rule::Rule(string dst, string src, string in, string out, unsigned short proto, std::vector<Match*> matches,
+    Target* target){
+  dstIp = dst;
+  srcIp = src;
+  iFace = in;
+  oFace = out;
+  this->proto = proto;
+  entryMatches = matches;
+  entryTarget = target;
+}
+
 
 Rule::Rule(json j){
   dstIp = j["dstIp"];
@@ -178,7 +207,7 @@ Rule::Rule(json j){
   iFace = j["iFace"];
   oFace = j["oFace"];
   proto = j["proto"];
-  for(auto& match : j["match"]){
+  for(auto& match : j["matches"]){
     string name = match["name"];
     if(name == "addrtype")
       entryMatches.push_back(new AddrtypeMatch(match));
@@ -204,8 +233,6 @@ Rule::Rule(json j){
     entryTarget = new AuditTarget(j["target"]);
   else if(name == "CHECKSUM")
     entryTarget = new ChecksumTarget(j["target"]);
-  else if(name == "CLASSIFY")
-    entryTarget = new ClassifyTarget(j["target"]);
   else if(name == "CONNMARK")
     entryTarget = new ConnmarkTarget(j["target"]);
   else if(name == "CONNSECMARK")
@@ -250,6 +277,14 @@ Rule::Rule(json j){
     entryTarget = new HlTarget(j["target"]);
   else if(name == "REJECT")
     entryTarget = new RejectIPTarget(j["target"]);
+  else if(name == "DROP")
+    entryTarget = new DropTarget();
+  else if(name == "ACCEPT")
+    entryTarget = new AcceptTarget();
+  else if(name == "RETURN")
+    entryTarget = new ReturnTarget();
+  else
+    throw runtime_error("File corrupted. Unrecognized target");
 }
 
     
@@ -257,22 +292,26 @@ Rule::Rule(json j){
 
 
 ipt_entry* Rule::asEntry() const{
-  ipt_entry* entry = nullptr;
-  xt_entry_match* match = nullptr;
-  xt_entry_target* target = nullptr;
-  Match* entryMatch = nullptr;
-  int numOfMatches = 0;
+  unsigned int numOfMatches = 0;
   if(!entryMatches.empty())
     numOfMatches = entryMatches.size();
+  ipt_entry* entry;
+  xt_entry_match** matches = new xt_entry_match*[numOfMatches];
+  memset(matches, 0, sizeof(xt_entry_match*) * numOfMatches); 
+  xt_entry_target* target;
+  xt_entry_match* match;
+  Match* entryMatch;
 
-  unsigned entrySize = XT_ALIGN(sizeof(ipt_entry));
-  unsigned matchesSize = XT_ALIGN(sizeof(xt_entry_match) * numOfMatches);
+  // Align everything
+  unsigned int entrySize = XT_ALIGN(sizeof(ipt_entry));
+  unsigned int targetSize = XT_ALIGN(sizeof(xt_entry_target) + entryTarget->getSize());
+  unsigned int matchesSize = XT_ALIGN(sizeof(xt_entry_match)) * numOfMatches;
   for(int i = 0; i < numOfMatches; i++)
     matchesSize += XT_ALIGN(entryMatches.at(i)->getSize());
-  unsigned targetSize = XT_ALIGN(sizeof(xt_entry_target) + entryTarget->getSize());
-  unsigned totalSize = entrySize + matchesSize + targetSize;
+  unsigned int totalSize = entrySize + targetSize + matchesSize;
+  entry = (ipt_entry*)calloc(1, totalSize);
 
-  entry = (ipt_entry*)calloc(totalSize, 0);
+
 
   if(srcIp != "")
     entry->ip.src = strToInAddr(srcIp);
@@ -288,7 +327,7 @@ ipt_entry* Rule::asEntry() const{
     strncpy(entry->ip.outiface, oFace.c_str(), IFNAMSIZ);
     memset(entry->ip.outiface_mask, 1, (oFace.size() < IFNAMSIZ) ? oFace.size() + 1 : IFNAMSIZ); 
   }
-    entry->ip.proto = IPPROTO_UDP; 
+  entry->ip.proto = proto; 
   
   entry->target_offset = entrySize + matchesSize;
   entry->next_offset = totalSize;
@@ -303,7 +342,7 @@ ipt_entry* Rule::asEntry() const{
     /*
     if(!strcmp(matches[i]->u.user.name,"udp")){
       xt_udp_match* match = (xt_udp_match*) matches[i]->data;
-      *match = ((UdpMatch*)entryMatches.at(i))->getSpecs();
+      *match = ((UdpMatch*)entryMatches->at(i))->getSpecs();
     }
     */
     memcpy(match->data, entryMatch->getSpecs(), entryMatch->getSize());
@@ -333,10 +372,13 @@ json Rule::asJson() const{
   j["iFace"] = iFace;
   j["oFace"] = oFace;
   j["proto"] = proto;
-  j["match"] = json::array();
-  for(int i = 0; i < entryMatches.size(); i++)
+  j["matches"] = json::array();
+  for(int i = 0; i < entryMatches.size(); i++){
     j["matches"][i] = entryMatches[i]->asJson();
+    j["matches"][i]["name"] = entryMatches[i]->getName();
+  }
   j["target"] = entryTarget->asJson();
+  j["target"]["name"] = entryTarget->getName();
   return j;
 }
 
@@ -350,12 +392,16 @@ Firewall::Firewall(){
   }
 }
 
+Firewall::Firewall(string ruleFile) : Firewall(){
+  this->ruleFile = ruleFile;
+}
+
 Firewall::~Firewall(){
   iptc_free(rules);
 }
 
 void Firewall::addRule(string dstIp, string srcIp, string iFace, string oFace, 
-    string proto, std::vector<Match*>* entryMatches, Target* entryTarget, string chain){ 
+    unsigned short proto, std::vector<Match*>* entryMatches, Target* entryTarget, string chain){ 
   unsigned int numOfMatches = 0;
   if(entryMatches)
     numOfMatches = entryMatches->size();
@@ -391,7 +437,7 @@ void Firewall::addRule(string dstIp, string srcIp, string iFace, string oFace,
     strncpy(entry->ip.outiface, oFace.c_str(), IFNAMSIZ);
     memset(entry->ip.outiface_mask, 1, (oFace.size() < IFNAMSIZ) ? oFace.size() + 1 : IFNAMSIZ); 
   }
-    entry->ip.proto = IPPROTO_UDP; 
+  entry->ip.proto = proto; 
   
   entry->target_offset = entrySize + matchesSize;
   entry->next_offset = totalSize;
@@ -426,7 +472,7 @@ void Firewall::addRule(string dstIp, string srcIp, string iFace, string oFace,
   */
   memcpy(target->data, entryTarget->getSpecs(), entryTarget->getSize());
 
-//  const ipt_entry* cmp = iptc_first_rule(chain.c_str(), rules);
+  const ipt_entry* cmp = iptc_first_rule(chain.c_str(), rules);
 
   
   if(!iptc_append_entry(chain.c_str(), entry, rules)){
@@ -435,14 +481,30 @@ void Firewall::addRule(string dstIp, string srcIp, string iFace, string oFace,
   }
 
 
-  if(!iptc_get_target(entry, rules))
-    throw runtime_error(iptc_strerror(errno));
+//  if(!iptc_get_target(entry, rules))
+//    throw runtime_error(iptc_strerror(errno));
 
-
+/*
   if(!iptc_commit(rules)){
     string e = "Error commiting table\n";
     throw runtime_error(e += iptc_strerror(errno));
   }
+*/
+}
+
+void Firewall::addRule(Rule* rule, string chain){
+  //addRule(rule->dstIp, rule->srcIp, rule->iFace, rule->oFace, rule->proto, &rule->entryMatches, rule->entryTarget, chain);
+  ipt_entry* entry = rule->asEntry();
+
+  if(!iptc_append_entry(chain.c_str(), entry, rules)){
+    string e = "Error adding rule\n";
+    throw runtime_error(e += iptc_strerror(errno));
+  }
+
+
+//  if(!iptc_get_target(entry, rules))
+//    throw runtime_error(iptc_strerror(errno));
+
 
 }
 
@@ -513,6 +575,25 @@ void Firewall::insertRule(string dstIp, string srcIp, string iFace, string oFace
   }
   */
   memcpy(target->data, entryTarget->getSpecs(), entryTarget->getSize());
+
+  if(!iptc_insert_entry(chain.c_str(), entry, num, rules)){
+    string e = "Error adding rule\n";
+    throw runtime_error(e += iptc_strerror(errno));
+  }
+
+
+  if(!iptc_get_target(entry, rules))
+    throw runtime_error(iptc_strerror(errno));
+
+
+  if(!iptc_commit(rules)){
+    string e = "Error commiting table\n";
+    throw runtime_error(e += iptc_strerror(errno));
+  }
+}
+
+void Firewall::insertRule(Rule* rule, string chain, int num){
+  ipt_entry* entry = rule->asEntry();
 
   if(!iptc_insert_entry(chain.c_str(), entry, num, rules)){
     string e = "Error adding rule\n";
@@ -614,6 +695,24 @@ void Firewall::replaceRule(string dstIp, string srcIp, string iFace, string oFac
   }
 }
  
+void Firewall::replaceRule(Rule* rule, string chain, int num){
+  ipt_entry* entry = rule->asEntry();
+  
+  if(!iptc_replace_entry(chain.c_str(), entry, num, rules)){
+    string e = "Error adding rule\n";
+    throw runtime_error(e += iptc_strerror(errno));
+  }
+
+
+  if(!iptc_get_target(entry, rules))
+    throw runtime_error(iptc_strerror(errno));
+
+
+  if(!iptc_commit(rules)){
+    string e = "Error commiting table\n";
+    throw runtime_error(e += iptc_strerror(errno));
+  }
+}
 
 void Firewall::removeRule(unsigned num, string chain, string table){
   if(!iptc_delete_num_entry(chain.c_str(), num, rules)){
@@ -628,6 +727,10 @@ void Firewall::removeRule(unsigned num, string chain, string table){
 }
 
 void Firewall::save(){
+  if(!iptc_commit(rules)){
+    string e = "Error commiting table\n";
+    throw runtime_error(e += iptc_strerror(errno));
+  }
   json j;
   std::ofstream file(ruleFile, std::ofstream::trunc);
   for(const char* chain = iptc_first_chain(rules); chain != NULL; chain = iptc_next_chain(rules)){
@@ -648,7 +751,7 @@ void Firewall::load(){
   for(auto& obj : j.items()){
     string chain = obj.key();
     for(auto& ruleJson : obj.value()){
-      addRule(new Rule(json), chain);
+      addRule(new Rule(ruleJson), chain);
     }
   }
 }

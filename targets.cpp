@@ -58,7 +58,7 @@ AuditTarget::AuditTarget(unsigned char type){
 }
 
 AuditTarget::AuditTarget(json j){
-  this->specs = j["specs"].get<unsigned char>();
+  this->specs.type = j["type"].get<unsigned char>();
 }
 
 void AuditTarget::setType(unsigned char type){
@@ -103,7 +103,7 @@ string ChecksumTarget::getName() const{
 
 json ChecksumTarget::asJson() const{
   json j;
-  j["operation"] = this->specs.operation;
+  j["operation"] = (bool)this->specs.operation;
   return j;
 }
 
@@ -130,6 +130,7 @@ ConnmarkTarget::ConnmarkTarget(json j){
   this->specs.ctmask = j["ctmask"].get<unsigned>();
   this->specs.nfmask = j["nfmask"].get<unsigned>();
   this->specs.mode = j["mode"].get<unsigned char>();
+}
 
 void ConnmarkTarget::setMark(unsigned int value, unsigned int mask){
   this->specs.ctmark = value;
@@ -159,6 +160,8 @@ json ConnmarkTarget::asJson() const{
   j["ctmask"] = this->specs.ctmask;
   j["nfmask"] = this->specs.nfmask;
   j["mode"] = this->specs.mode;
+  return j;
+}
 
 ConnsecmarkTarget::ConnsecmarkTarget(){
   this->specs.mode = 0;
@@ -293,7 +296,7 @@ string DscpTarget::getName() const{
   return "DSCP";
 }
 
-json DscpTarget::asJsone() const{
+json DscpTarget::asJson() const{
   json j;
   j["dscp"] = this->specs.dscp;
   return j;
@@ -311,6 +314,7 @@ TosTarget::TosTarget(unsigned char value, unsigned char mask){
 TosTarget::TosTarget(json j){
   this->specs.tos_value = j["tos_value"].get<unsigned char>();
   this->specs.tos_mask = j["tos_mask"].get<unsigned char>();
+}
 
 void TosTarget::setTos(unsigned char value, unsigned char mask){
   this->specs.tos_value = value;
@@ -417,11 +421,12 @@ json HmarkTarget::asJson() const{
   j["hmodulus"] = this->specs.hmodulus;
   j["hoffset"] = this->specs.hoffset;
   j["port_mask"] = this->specs.port_mask.v32;
-  j["prot_set"] = this->specs.prot_set.v32;
+  j["port_set"] = this->specs.port_set.v32;
   for(int i = 0; i < 4; i++){
     j["src_mask"][i] = this->specs.src_mask.all[i];
     j["dst_mask"][i] = this->specs.dst_mask.all[i];
   }
+  return j;
 }
 
 IdletimerTarget::IdletimerTarget(){
@@ -439,11 +444,11 @@ IdletimerTarget::IdletimerTarget(string label, unsigned int timeout){
 
 IdletimerTarget::IdletimerTarget(json j){
   this->specs.timeout = j["timeout"].get<unsigned>();
-  strncpy(this->specs.label, j["timeout"].get<string>().c_str(), MAX_IDLETIMER_LABEL_SIZE);
+  strncpy(this->specs.label, j["label"].get<string>().c_str(), MAX_IDLETIMER_LABEL_SIZE);
 }
 
 void IdletimerTarget::setLabel(string label){
-  strcpy(this->specs.label, label.c_str());
+  strncpy(this->specs.label, label.c_str(), MAX_IDLETIMER_LABEL_SIZE);
 }
 
 void IdletimerTarget::setTimeout(unsigned int timeout){
@@ -475,7 +480,7 @@ LedTarget::LedTarget(string name, unsigned int delay, bool alwaysBlink){
 
 LedTarget::LedTarget(json j){
   strncpy(this->specs.id, j["id"].get<string>().c_str(), 27);
-  this->specs.alway_blink = j["always_blink"].get<bool>();
+  this->specs.always_blink = j["always_blink"].get<bool>();
   this->specs.delay = j["delay"].get<unsigned>();
 }
 
@@ -499,7 +504,7 @@ string LedTarget::getName() const{
 json LedTarget::asJson() const{
   json j;
   j["id"] = string(this->specs.id);
-  j["always_blink"] = this->specs.always_blink;
+  j["always_blink"] = (bool)this->specs.always_blink;
   j["delay"] = this->specs.delay;
   return j;
 }
@@ -519,7 +524,7 @@ LogTarget::LogTarget(string prefix, unsigned char level, unsigned char flags){
 LogTarget::LogTarget(json j){
   this->specs.level = j["level"].get<unsigned char>();
   this->specs.logflags = j["logflags"].get<unsigned char>();
-  strncpy(this->specs.prefix, j["prefix"].get<string>().c_str());
+  strncpy(this->specs.prefix, j["prefix"].get<string>().c_str(), 30);
 }
 
 void LogTarget::setPrefix(string prefix){
@@ -701,7 +706,7 @@ string NFQueueTarget::getName() const{
 json NFQueueTarget::asJson() const{
   json j;
   j["queuenum"] = this->specs.queuenum;
-  j["queue_total"] = this->specs.queue_total;
+  j["queues_total"] = this->specs.queues_total;
   j["flags"] = this->specs.flags;
   return j;
 }
@@ -783,6 +788,8 @@ json SecMarkTarget::asJson() const{
   j["mode"] = this->specs.mode;
   j["secid"] = this->specs.secid;
   j["secctx"] = string(this->specs.secctx);
+  return j;
+}
 
 SynproxyTarget::SynproxyTarget(){
   this->specs.options = 0;
@@ -800,6 +807,7 @@ SynproxyTarget::SynproxyTarget(json j){
   this->specs.options = j["options"].get<unsigned char>();
   this->specs.wscale = j["wscale"].get<unsigned char>();
   this->specs.mss = j["mss"].get<unsigned short>();
+}
 
 void SynproxyTarget::setMss(unsigned short mss){
   this->specs.mss = mss;
@@ -943,7 +951,7 @@ TproxyTarget::TproxyTarget(json j){
   this->specs.mark_value = j["mark_value"].get<unsigned>();
   this->specs.lport = j["lport"].get<unsigned short>();
   for(int i = 0; i < 4; i++)
-    this->specs.laddr>all[i] = j["laddr"][i];
+    this->specs.laddr.all[i] = j["laddr"][i];
 }
 
 void TproxyTarget::setPort(unsigned short port){

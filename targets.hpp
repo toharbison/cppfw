@@ -2,6 +2,7 @@
 #define TARGETS_H
 
 #include <string>
+#include <nlohmann/json.hpp>
 #include "target_headers.hpp"
 #include "strToIp.hpp"
 
@@ -71,7 +72,7 @@ class TemplateTarget : public Target {
   public:
   /* Constructors */
   TemplateTarget(){}
-  Template(const T* s){ memcpy(&specs, s, getSize()); }
+  TemplateTarget(const T* s){ memcpy(&specs, s, getSize()); }
   /* Returns size of target struct */
   unsigned int getSize() const{ return sizeof(T); }
   /* Returns target specs */
@@ -154,7 +155,7 @@ class ChecksumTarget : public TemplateTarget<xt_checksum_target>{
   /* Returns this object as a json object */
   virtual json asJson() const;
 };
-
+#if 0
 class ClassifyTarget : public TemplateTarget<xt_classify_target>{
   public:
   /* Constuctors */
@@ -175,7 +176,7 @@ class ClassifyTarget : public TemplateTarget<xt_classify_target>{
   /* Returns this object as a json object */
   virtual json asJson() const;
 };
-
+#endif
 class ConnmarkTarget : public TemplateTarget<xt_connmark_target>{
   public:
   /* Constructors */
@@ -320,7 +321,7 @@ class TosTarget : public TemplateTarget<xt_tos_target>{
   /* Constructors */
   TosTarget();
   TosTarget(unsigned char value, unsigned char mask);
-  TosTarget(const xt_ct_target* s) : TemplateTarget<xt_ct_target>(s){}
+  TosTarget(const xt_tos_target* s) : TemplateTarget<xt_tos_target>(s){}
   TosTarget(json j);
 
   /**
@@ -437,7 +438,7 @@ class LogTarget : public TemplateTarget<xt_log_target>{
   /* Constructors */
   LogTarget();
   LogTarget(string prefix, unsigned char level, unsigned char flags);
-  LogTarget(const xt_ct_target* s) : TemplateTarget<xt_ct_target>(s){}
+  LogTarget(const xt_log_target* s) : TemplateTarget<xt_log_target>(s){}
   LogTarget(json j);
 
   /* Sets prefix of log message. Limit of 30 characters */
