@@ -1,7 +1,7 @@
 #include <iostream>
 #include <stdexcept>
 #include "firewall.hpp"
-#include "display.cpp"
+#include "display.hpp"
 
 
 int main(int argc, char** argv){
