@@ -757,8 +757,56 @@ void Firewall::load(){
 }
 
 
+std::vector<string>* Firewall::getRules() const{
+  std::vector<string>* ret = new std::vector<string>();
+  for(const char* chain = iptc_first_chain(rules); chain != NULL; chain = iptc_next_chain(rules)){
+    for(const ipt_entry* entry = iptc_first_rule(chain, rules); entry != NULL; entry = iptc_next_rule(entry, rules)){
+      Rule* rule = new Rule(entry);
+      string ruleStr = "";
+      if(rule->srcIp != "" && rule->srcIp != "0.0.0.0"){
+	ruleStr += "Source IP: "; 
+	ruleStr += rule->srcIp += " ";
+      }
+      if(rule->dstIp != "" && rule->srcIp != "0.0.0.0"){
+	ruleStr += "Destination IP: ";
+	ruleStr += rule->dstIp += " ";
+      }
+      if(rule->iFace != ""){
+	ruleStr += "Incoming Interface: ";
+	ruleStr += rule->iFace += " ";
+      }
+      if(rule->oFace != ""){
+	ruleStr += "Outgoing Interface: ";
+	ruleStr += rule->oFace += " ";
+      }
+      if(rule->proto != 0){
+	ruleStr += "Protocol: ";
+	ruleStr += std::to_string(rule->proto) += " ";
+      }
+      if(!rule->entryMatches.empty()){
+	ruleStr += "Matches: ";
+	for(auto& match : rule->entryMatches){
+	  ruleStr += match->getName() += ": ";
+	  json j = match->asJson();
+	  for(auto item = j.begin(); item != j.end(); item++){
+	    (ruleStr += item.key()) += ": ";
+	    (ruleStr += item.value().dump()) += " ";
 
-      
+	  }
+	}
+      }
+      ruleStr += "Target: ";
+      ruleStr += rule->entryTarget->getName() += ": ";
+      json j = rule->entryTarget->asJson();
+      for(auto& item : j.items()){
+	(ruleStr += item.key()) += ": "; 
+	(ruleStr += item.value().dump()) += " ";
+      }
+      ret->push_back(ruleStr);
+    }
+  }
+  return ret;
+}
 
 
 

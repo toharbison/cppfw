@@ -98,6 +98,9 @@ class Firewall{
   /* Loads from ruleFile */
   void load();
 
+  /* Returns a vector of strings about all rules */
+  std::vector<string>* getRules() const;
+
   /* Checks logs and returns std::string of recent log messages
    * "lines" number of messages to return
    */
