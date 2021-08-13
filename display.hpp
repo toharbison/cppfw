@@ -27,6 +27,7 @@ class Display {
   static Match* makeTcp(WINDOW* win);
   static Match* makeUdp(WINDOW* win);
   static Match* makeIcmp(WINDOW* win);
+  static Target* makeLog(WINDOW* win);
 };
 
 #endif

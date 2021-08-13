@@ -834,6 +834,7 @@ Rule* Display::createRule(){
 	}
 	break;
       case '\n':{
+	werase(menu);
 	bflag = true;
 	if(!strcmp(targetTable[i][j], "Accept"))
 	  rule->entryTarget = new AcceptTarget();
@@ -841,7 +842,10 @@ Rule* Display::createRule(){
 	  rule->entryTarget = new DropTarget();
 	else if(!strcmp(targetTable[i][j], "Return"))
 	  rule->entryTarget = new ReturnTarget();
+	else if(!strcmp(targetTable[i][j], "Log"))
+	  rule->entryTarget = makeLog(menu);
 	break;
+	werase(menu);
       }
     }
     if(bflag)
@@ -1296,7 +1300,47 @@ Match* Display::makeUdp(WINDOW* win){
   return match;
 }
 
+   
 
-
+Target* Display::makeLog(WINDOW* win){
+  LogTarget* target = new LogTarget();
+  const int optionsSize = 2;
+  const char* options[optionsSize] = {"Prefix", "Level"};
+  MENUSTART
+  while(ch = wgetch(win)){
+    switch(ch){
+      case KEY_BACKSPACE:
+      case 127:
+	if(!str.empty()){
+	  mvwdelch(win, 2*i, getcurx(win)-1);
+	  str.pop_back();
+	}
+	break;
+      default:
+	str.push_back((char)ch);
+	waddch(win, ch);
+	break;
+      case '\n':
+	bflag = true;
+	if(i == 0){
+	  target->setPrefix(str.substr(0, 30));
+	  str = "";
+	}
+	else{
+	  target->setLevel(stoul(str));
+	  str = "";
+	}
+	break;
+    }
+    if(bflag){
+      bflag = false;
+      break;
+    }
+    update_panels();
+    doupdate();
+  }
+  MENUEND
+  return target;
+}
 
 
