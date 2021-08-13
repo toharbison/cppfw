@@ -739,9 +739,17 @@ std::vector<string>* Firewall::getRules() const{
 	ruleStr += "Source IP: "; 
 	ruleStr += rule->srcIp += " ";
       }
-      if(rule->dstIp != "" && rule->srcIp != "0.0.0.0"){
+      if(rule->dstIp != "" && rule->dstIp != "0.0.0.0"){
 	ruleStr += "Destination IP: ";
 	ruleStr += rule->dstIp += " ";
+      }
+      if(rule->srcMsk != "" && rule->srcMsk != "0.0.0.0"){
+	ruleStr += "Source Mask: ";
+	ruleStr += rule->srcMsk += " ";
+      }
+      if(rule->dstMsk != "" && rule->dstMsk != "0.0.0.0"){
+	ruleStr += "Destination Mask: ";
+	ruleStr += rule->dstMsk += " ";
       }
       if(rule->iFace != ""){
 	ruleStr += "Incoming Interface: ";

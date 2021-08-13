@@ -65,6 +65,15 @@ void Display::menu(){
 	  case 1:
 	    appendRule();
 	    break;
+	  case 2:
+	    insertRule();
+	    break;
+	  case 4:
+	    if(fw->getRules()->empty())
+	      mvwaddstr(menu, menuItemsSize*2, 1, "No rules to replace");
+	    else
+	      replaceRule();
+	    break;
 	  default:
 	    bflag = true;
 	    break;
@@ -211,6 +220,94 @@ void Display::deleteRule(){
   delete rules;
 }
 
+int Display::selectRule(){
+  WINDOW* win = newwin(0,0,0,0);
+  PANEL* winPanel = new_panel(win);
+  int ret = -1;
+  auto rules = fw->getRules();
+  int* lines = new int[rules->size() / 2];
+  int line = 2;
+  for(int i = 0; i < rules->size(); i++){
+    if(i == 0)
+      wattron(win, A_STANDOUT);
+    lines[i/2] = line;
+    string str = rules->at(i);
+    (str += " ") += rules->at(++i);
+    mvwaddstr(win, line, 2, std::to_string(i/2).c_str());
+    int len = COLS - 3 - std::to_string(i/2).size();
+    wattroff(win, A_STANDOUT);
+    waddnstr(win, (string(": ") += str).c_str(), len);
+    len -= 2 + std::to_string(i/2).length();
+    line++;
+    while(len < str.length()){
+      mvwaddnstr(win, line, 2, str.substr(len).c_str(), COLS - 3);
+      line++;
+      len += COLS - 3;
+    }
+    line++;
+  }
+  mvwaddstr(win, line, 2, "Select which rule to delete, or press q to return to menu");
+  update_panels();
+  doupdate();
+  int i = 0;
+  keypad(win, true);
+  while(int ch = wgetch(win)){
+    bool bflag = false;
+    wattroff(win, A_STANDOUT);
+    mvwaddstr(win, lines[i], 2, std::to_string(i).c_str()); 
+    switch(ch){
+      case KEY_UP:
+	if(i == 0)
+	  i = rules->size() / 2 - 1;
+	else
+	  i--;
+	break;
+      case KEY_DOWN:
+	if(i == rules->size() / 2 - 1)
+	  i = 0;
+	else
+	  i++;
+	break;
+      case 'q':
+	bflag = true;
+	break;
+      case '\n':
+	char str[COLS];
+	memset(str, ' ', COLS);
+	str[COLS - 1] = '\000';
+	mvwaddstr(win, line, 0, str);
+	mvwaddstr(win, line, 0, "Are you sure? [y]/n");
+	while((ch = wgetch(win)) && rules->size() != 0){
+	  bool bflag1 = false;
+	  switch(ch){
+	    case 'n':
+	    case 'N':
+	      bflag1 = true;
+	      break;
+	    case 'y':
+	    case 'Y':
+	    case '\n':
+	      ret = i;
+	      bflag = bflag1 = true;
+	      break;
+	  }
+	  if(bflag1)
+	    break;
+	}
+	break;
+    }
+    if(bflag)
+      break;
+    wattron(win, A_STANDOUT);
+    mvwaddstr(win, lines[i], 2, std::to_string(i).c_str());
+    update_panels();
+    doupdate();
+  }
+  del_panel(winPanel);
+  delwin(win);
+  delete rules;
+  return ret;
+}
 void Display::appendRule(){
   WINDOW* win = newwin(0,0,0,0);
   PANEL* winPanel = new_panel(win);
@@ -260,6 +357,143 @@ void Display::appendRule(){
   fw->addRule(createRule(), chain);
   del_panel(winPanel);
   delwin(win);
+}
+
+string Display::selectChain(){
+  WINDOW* win = newwin(0,0,0,0);
+  PANEL* winPanel = new_panel(win);
+  string chain;
+  mvwhline(win, 3, 0, ACS_HLINE, COLS);
+  const char* chains[3] = {"INPUT", "FOWARD", "OUTPUT"};
+  mvwaddstr(win, 1, COLS/2 - 7, "Select Chain Name");
+  for(int i = 0; i < 3; i++){
+    if(i == 0)
+      wattron(win, A_STANDOUT);
+    mvwaddstr(win, 5+2*i, 1, chains[i]);
+    wattroff(win, A_STANDOUT);
+  }
+  int i = 0;
+  update_panels();
+  doupdate();
+  keypad(win, true);
+  while(int ch = wgetch(win)){
+    bool bflag = false;
+    wattroff(win, A_STANDOUT);
+    mvwaddstr(win, 5+2*i, 1, chains[i]);
+    switch(ch){
+      case KEY_UP:
+	if(i == 0)
+	  i = 2;
+	else
+	  i--;
+	break;
+      case KEY_DOWN:
+	if(i == 2)
+	  i = 0;
+	else
+	  i++;
+	break;
+      case '\n':
+	bflag = true;
+	chain = chains[i];
+	break;
+    }
+    if(bflag)
+      break;
+    wattron(win, A_STANDOUT);
+    mvwaddstr(win, 5+2*i, 1, chains[i]);
+    update_panels();
+    doupdate();
+  }
+  del_panel(winPanel);
+  delwin(win);
+  return chain;
+}
+
+void Display::insertRule(){
+  string chain = selectChain();
+  WINDOW* win = newwin(0,0,0,0);
+  PANEL* winPanel = new_panel(win);
+  std::vector<string> chainRules;
+  auto rules = fw->getRules();
+  int line = 0;
+  int* lines = nullptr;
+  for(int i = 0; i < rules->size(); i += 2){
+    if(rules->at(i) == chain)
+      chainRules.push_back(rules->at(i + 1));
+  }
+  lines = new int[chainRules.size() + 1];
+  mvwaddstr(win, 1, COLS/2 - 16, "Select position to insert new rule");
+  mvwhline(win, 3, 0, ACS_HLINE, COLS);
+  for(int i = 0, line = 0; i < chainRules.size(); i++, line++){
+    int len;
+    lines[i] = line;
+    if(i == 0)
+      wattron(win, A_STANDOUT);
+    mvwaddstr(win, 5+2*line, 1, std::to_string(i).c_str());
+    wattroff(win, A_STANDOUT);
+    waddnstr(win, (string(": ") += chainRules.at(i)).c_str(), COLS-2-std::to_string(i).size());
+    len = COLS - 4 - std::to_string(i).size();
+    while(len < chainRules.at(i).size()){
+      line++;
+      mvwaddnstr(win, 5+2*line, 1, chainRules.at(i).substr(len).c_str(), COLS - 2);
+      len += COLS - 2;
+    }
+  }
+  line++;
+  lines[chainRules.size()] = line;
+  mvwaddstr(win, 5+2*line, 1, (std::to_string(chainRules.size()) += ": ").c_str());
+  int i = 0;
+  update_panels();
+  doupdate();
+  while(int ch = wgetch(win)){
+    bool bflag = false;
+    wattroff(win, A_STANDOUT);
+    mvwaddstr(win, 5+2*lines[i], 1, std::to_string(i).c_str());
+    switch(ch){
+      case KEY_UP:
+	if(i == 0)
+	  i = chainRules.size();
+	else
+	  i--;
+	break;
+      case KEY_DOWN:
+	if(i == chainRules.size())
+	  i = 0;
+	else
+	  i++;
+	break;
+      case '\n':
+	bflag = true;
+	break;
+    }
+    if(bflag)
+      break;
+    wattron(win, A_STANDOUT);
+    mvwaddstr(win, 5+2*lines[i], 1, std::to_string(i).c_str());
+    update_panels();
+    doupdate();
+  }
+  fw->insertRule(createRule(), chain, i);
+  del_panel(winPanel);
+  delwin(win);
+  delete[] lines;
+  delete rules;
+}
+
+void Display::replaceRule(){
+  int num = selectRule();
+  auto rules = fw->getRules();
+  string chain = rules->at(num * 2);
+  int first = num;
+  for(int i = 0; i < rules->size()/2; i++){
+    if(chain == rules->at(2*num - 2*i) && i != 0)
+      first--;
+    else if(chain != rules->at(2 * num - 2 * i))
+      break;
+  }
+  fw->replaceRule(createRule(), chain, num - first);
+  delete rules;
 }
 
 
