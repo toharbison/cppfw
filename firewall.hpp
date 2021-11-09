@@ -52,6 +52,7 @@ class Firewall{
   void addRule(std::string dstIp, std::string srcIp, std::string iFace, std::string oFace, 
       unsigned short proto, std::vector<Match*>* matches, Target* target, string chain); 
   void addRule(Rule* rule, string chain);
+  void addLog(Rule* rule);
 
   /* Adds rule to firewall
    * "dstIp" is destination ip of packet

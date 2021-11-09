@@ -508,6 +508,25 @@ void Firewall::addRule(Rule* rule, string chain){
 
 }
 
+void Firewall::addLog(Rule* rule){
+  ipt_entry* entry = rule->asEntry();
+  string chain = "INPUT";
+  
+  xtc_handle* nat = iptc_init("nat");
+  if(!nat){
+    string e = "Error creating nat table\n";
+    throw runtime_error(e += iptc_strerror(errno));
+  }
+
+  if(!iptc_append_entry(chain.c_str(), entry, nat)){
+    string e = "Error adding rule\n";
+    throw runtime_error(e += iptc_strerror(errno));
+  }
+
+  iptc_free(nat);
+}
+
+
 void Firewall::insertRule(string dstIp, string srcIp, string iFace, string oFace, 
       string proto, std::vector<Match*>* entryMatches, Target* entryTarget, string chain, int num){
   ipt_entry* entry = nullptr;
