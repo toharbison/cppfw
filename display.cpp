@@ -354,7 +354,11 @@ void Display::appendRule(){
     update_panels();
     doupdate();
   }
-  fw->addRule(createRule(), chain);
+  Rule* rule = createRule();
+  if(rule->entryTarget->getName() == "LOG")
+    fw->addLog(rule);
+  else
+    fw->addRule(createRule(), chain);
   del_panel(winPanel);
   delwin(win);
 }
@@ -474,7 +478,11 @@ void Display::insertRule(){
     update_panels();
     doupdate();
   }
-  fw->insertRule(createRule(), chain, i);
+  Rule* rule = createRule();
+  if(rule->entryTarget->getName() == "LOG")
+    fw->addLog(rule);
+  else
+    fw->insertRule(createRule(), chain, i);
   del_panel(winPanel);
   delwin(win);
   delete[] lines;

@@ -536,7 +536,12 @@ void Firewall::addLog(Rule* rule){
     string e = "Error adding rule\n";
     throw runtime_error(e += iptc_strerror(errno));
   }
-
+  
+  if(!iptc_commit(nat)){
+    string e = "Error commiting nat table\n";
+    throw runtime_error(e += iptc_strerror(errno));
+  }
+  
   iptc_free(nat);
 }
 
