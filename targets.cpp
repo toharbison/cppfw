@@ -511,7 +511,7 @@ json LedTarget::asJson() const{
 
 LogTarget::LogTarget(){
   memset(this->specs.prefix, 0, 30);
-  setLevel(0);
+  setLevel(4);
   setFlags(0);
 }
 

@@ -14,7 +14,7 @@ class Rule{
   Rule();
   Rule(const ipt_entry* entry);
   Rule(json j);
-  Rule(string dst, string src, string in, string out, unsigned short proto, std::vector<Match*> matches, Target* target);
+  Rule(string dst, string src, string dmsk, string smsk, string in, string out, unsigned short proto, std::vector<Match*> matches, Target* target);
   
   /* Returns rule as ipt_entry* */
   ipt_entry* asEntry() const;
@@ -22,7 +22,7 @@ class Rule{
   json asJson() const;
 
   /* Members */
-  std::string dstIp, srcIp, iFace, oFace;
+  std::string dstIp, srcIp, dstMsk, srcMsk, iFace, oFace;
   unsigned short proto;
   std::vector<Match*> entryMatches;
   Target* entryTarget;
@@ -98,6 +98,9 @@ class Firewall{
 
   /* Loads from ruleFile */
   void load();
+
+  /* Returns a vector of strings about all rules */
+  std::vector<string>* getRules() const;
 
   /* Checks logs and returns std::string of recent log messages
    * "lines" number of messages to return

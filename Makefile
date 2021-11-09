@@ -1,10 +1,10 @@
 prog: main.o firewall.o matches.o targets.o strToIp.o display.o
-	g++ -std=c++11 -g -o prog main.o firewall.o targets.o matches.o strToIp.o display.o -lip4tc -lxtables -ldl -lncurses
+	g++ -std=c++11 -g -o prog main.o firewall.o targets.o matches.o strToIp.o display.o -lip4tc -lxtables -ldl -lpanel -lncurses
 
-main.o: main.cpp firewall.hpp
+main.o: main.cpp firewall.hpp display.hpp
 	g++ -std=c++11 -g -c main.o main.cpp
 
-display.o: display.cpp
+display.o: display.hpp display.cpp
 	g++ -std=c++11 -g -c display.o display.cpp
 
 firewall.o: firewall.hpp firewall.cpp

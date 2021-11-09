@@ -1,7 +1,7 @@
 #include <iostream>
 #include <stdexcept>
 #include "firewall.hpp"
-#include "display.cpp"
+#include "display.hpp"
 
 
 int main(int argc, char** argv){
@@ -43,7 +43,7 @@ int main(int argc, char** argv){
       Target* target = log;
       fw->addRule("", "", "wlp4s0", "", IPPROTO_UDP, new std::vector<Match*>({match1, match2}), target, "INPUT");
       std::cout<<1<<'\n';
-      fw->addRule(new Rule("", "", "wlp4s0", "", IPPROTO_UDP, {match1, match2}, target), "INPUT");
+      fw->addRule(new Rule("", "", "", "", "wlp4s0", "", IPPROTO_UDP, {match1, match2}, target), "INPUT");
       fw->save();
     }catch(std::exception &e){
       std::cerr << "FAIL SAVE: " << e.what() << "\n";

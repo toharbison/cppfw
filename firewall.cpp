@@ -14,6 +14,8 @@ typedef std::runtime_error runtime_error;
 Rule::Rule(){
   dstIp = "";
   srcIp = "";
+  dstMsk = "";
+  srcMsk = "";
   iFace = "";
   oFace = "";
   proto = 0;
@@ -24,6 +26,8 @@ Rule::Rule(){
 Rule::Rule(const ipt_entry* entry){
   dstIp = ipToStr(entry->ip.dst);
   srcIp = ipToStr(entry->ip.src);
+  dstMsk = ipToStr(entry->ip.dmsk);
+  srcMsk = ipToStr(entry->ip.smsk);
   iFace = entry->ip.iniface;
   oFace = entry->ip.outiface;
   proto = entry->ip.proto;
@@ -189,10 +193,12 @@ Rule::Rule(const ipt_entry* entry){
     throw runtime_error("Unrecognized target");
 }
 
-Rule::Rule(string dst, string src, string in, string out, unsigned short proto, std::vector<Match*> matches,
+Rule::Rule(string dst, string src, string dmsk, string smsk, string in, string out, unsigned short proto, std::vector<Match*> matches,
     Target* target){
   dstIp = dst;
   srcIp = src;
+  srcMsk = smsk;
+  dstMsk = dmsk;
   iFace = in;
   oFace = out;
   this->proto = proto;
@@ -204,6 +210,8 @@ Rule::Rule(string dst, string src, string in, string out, unsigned short proto, 
 Rule::Rule(json j){
   dstIp = j["dstIp"];
   srcIp = j["srcIp"];
+  dstMsk = j["dstMsk"];
+  srcMsk = j["srcMsk"];
   iFace = j["iFace"];
   oFace = j["oFace"];
   proto = j["proto"];
@@ -319,6 +327,10 @@ ipt_entry* Rule::asEntry() const{
     entry->ip.dst = strToInAddr(dstIp);
   //entry->ip.smsk.s_addr = inet_addr("255.255.255.255");
   //entry->ip.dmsk.s_addr = inet_addr("255.255.255.255");
+  if(srcMsk != "")
+    entry->ip.smsk = strToInAddr(srcMsk);
+  if(dstMsk != "")
+    entry->ip.dmsk = strToInAddr(dstMsk);
   if(iFace != ""){
     strncpy(entry->ip.iniface, iFace.c_str(), IFNAMSIZ);
     memset(entry->ip.iniface_mask, 1, (iFace.size() < IFNAMSIZ) ? iFace.size() + 1 : IFNAMSIZ); 
@@ -369,6 +381,8 @@ json Rule::asJson() const{
   json j;
   j["dstIp"] = dstIp;
   j["srcIp"] = srcIp;
+  j["srcMsk"] = srcMsk;
+  j["dstMsk"] = dstMsk;
   j["iFace"] = iFace;
   j["oFace"] = oFace;
   j["proto"] = proto;
@@ -599,16 +613,6 @@ void Firewall::insertRule(string dstIp, string srcIp, string iFace, string oFace
     string e = "Error adding rule\n";
     throw runtime_error(e += iptc_strerror(errno));
   }
-
-
-  if(!iptc_get_target(entry, rules))
-    throw runtime_error(iptc_strerror(errno));
-
-
-  if(!iptc_commit(rules)){
-    string e = "Error commiting table\n";
-    throw runtime_error(e += iptc_strerror(errno));
-  }
 }
 
 void Firewall::insertRule(Rule* rule, string chain, int num){
@@ -618,18 +622,7 @@ void Firewall::insertRule(Rule* rule, string chain, int num){
     string e = "Error adding rule\n";
     throw runtime_error(e += iptc_strerror(errno));
   }
-
-
-  if(!iptc_get_target(entry, rules))
-    throw runtime_error(iptc_strerror(errno));
-
-
-  if(!iptc_commit(rules)){
-    string e = "Error commiting table\n";
-    throw runtime_error(e += iptc_strerror(errno));
-  }
 }
-
 void Firewall::replaceRule(string dstIp, string srcIp, string iFace, string oFace, 
       string proto, std::vector<Match*>* entryMatches, Target* entryTarget, string chain, int num){
   ipt_entry* entry = nullptr;
@@ -703,15 +696,6 @@ void Firewall::replaceRule(string dstIp, string srcIp, string iFace, string oFac
     throw runtime_error(e += iptc_strerror(errno));
   }
 
-
-  if(!iptc_get_target(entry, rules))
-    throw runtime_error(iptc_strerror(errno));
-
-
-  if(!iptc_commit(rules)){
-    string e = "Error commiting table\n";
-    throw runtime_error(e += iptc_strerror(errno));
-  }
 }
  
 void Firewall::replaceRule(Rule* rule, string chain, int num){
@@ -722,15 +706,6 @@ void Firewall::replaceRule(Rule* rule, string chain, int num){
     throw runtime_error(e += iptc_strerror(errno));
   }
 
-
-  if(!iptc_get_target(entry, rules))
-    throw runtime_error(iptc_strerror(errno));
-
-
-  if(!iptc_commit(rules)){
-    string e = "Error commiting table\n";
-    throw runtime_error(e += iptc_strerror(errno));
-  }
 }
 
 void Firewall::removeRule(unsigned num, string chain, string table){
@@ -739,10 +714,6 @@ void Firewall::removeRule(unsigned num, string chain, string table){
     throw runtime_error(e += iptc_strerror(errno));
   }
 
-  if(!iptc_commit(rules)){
-    string e = "Error commiting table\n";
-    throw runtime_error(e += iptc_strerror(errno));
-  }
 }
 
 void Firewall::save(){
@@ -776,8 +747,65 @@ void Firewall::load(){
 }
 
 
+std::vector<string>* Firewall::getRules() const{
+  std::vector<string>* ret = new std::vector<string>();
+  for(const char* chain = iptc_first_chain(rules); chain != NULL; chain = iptc_next_chain(rules)){
+    for(const ipt_entry* entry = iptc_first_rule(chain, rules); entry != NULL; entry = iptc_next_rule(entry, rules)){
+      Rule* rule = new Rule(entry);
+      ret->push_back(chain);
+      string ruleStr = "";
+      if(rule->srcIp != "" && rule->srcIp != "0.0.0.0"){
+	ruleStr += "Source IP: "; 
+	ruleStr += rule->srcIp += " ";
+      }
+      if(rule->dstIp != "" && rule->dstIp != "0.0.0.0"){
+	ruleStr += "Destination IP: ";
+	ruleStr += rule->dstIp += " ";
+      }
+      if(rule->srcMsk != "" && rule->srcMsk != "0.0.0.0"){
+	ruleStr += "Source Mask: ";
+	ruleStr += rule->srcMsk += " ";
+      }
+      if(rule->dstMsk != "" && rule->dstMsk != "0.0.0.0"){
+	ruleStr += "Destination Mask: ";
+	ruleStr += rule->dstMsk += " ";
+      }
+      if(rule->iFace != ""){
+	ruleStr += "Incoming Interface: ";
+	ruleStr += rule->iFace += " ";
+      }
+      if(rule->oFace != ""){
+	ruleStr += "Outgoing Interface: ";
+	ruleStr += rule->oFace += " ";
+      }
+      if(rule->proto != 0){
+	ruleStr += "Protocol: ";
+	ruleStr += std::to_string(rule->proto) += " ";
+      }
+      if(!rule->entryMatches.empty()){
+	ruleStr += "Matches: ";
+	for(auto& match : rule->entryMatches){
+	  ruleStr += match->getName() += ": ";
+	  json j = match->asJson();
+	  for(auto item = j.begin(); item != j.end(); item++){
+	    (ruleStr += item.key()) += ": ";
+	    (ruleStr += item.value().dump()) += " ";
 
-      
+	  }
+	}
+      }
+      ruleStr += "Target: ";
+      ruleStr += rule->entryTarget->getName() += ": ";
+      json j = rule->entryTarget->asJson();
+      for(auto& item : j.items()){
+	(ruleStr += item.key()) += ": "; 
+	(ruleStr += item.value().dump()) += " ";
+      }
+      ret->push_back(ruleStr);
+    }
+  }
+  return ret;
+}
 
 
 
