@@ -516,8 +516,8 @@ Rule* Display::createRule(){
   const int matchItemsSize = 8;
   const int targetItemsSize = 27; 
   const char* menuItems[menuItemsSize] = {"Source IP", "Destination IP", "Source Mask", "Destination Mask", "Input Interface", "Output Interface", "Protocol", "Finish"};
-  const char* matchItems[matchItemsSize] = {"Addrtype", "Bpf", "Cgroup", "Cluster", "Comment", "Tcp", "Udp", "Icmp"};
-  const char* targetItems[targetItemsSize] = {"Accept", "Drop", "Return","Audit", "Checksum", "Classify", "Connmark", "Connsecmark", "Ct", "Dscp", "Tos", "Hmark", "Idletimer", "Led", "Log", "Mark", "Nflog", "Nfqueue", "Rateest", "Secmark", "Synproxy", "Tcpmss", "Tcpoptstrip", "Tee", "Tproxy", "Reject", "Ttl"};
+  const char* matchItems[matchItemsSize] = {"Addrtype", "Bpf", "Cgroup", "Cluster", "Comment", "Tcp", "Udp"};
+  const char* targetItems[targetItemsSize] = {"Accept", "Drop", "Return","Log"};
   int i = 0;
   int j = 0;
   int ch = 0;
